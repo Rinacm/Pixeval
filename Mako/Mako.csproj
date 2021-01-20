@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Dispatch" />
+      <Folder Include="Internal" />
+      <Folder Include="Net" />
+      <Folder Include="Shared" />
+      <Folder Include="Util" />
+    </ItemGroup>
+
+</Project>
