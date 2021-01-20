@@ -22,7 +22,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Pixeval.Data.Web.Response
+namespace Mako.Net.ResponseModel
 {
     public class TrendingTagResponse
     {

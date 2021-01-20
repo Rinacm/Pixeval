@@ -18,11 +18,11 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Mako.Shared.Model;
+using Mako.Model;
 using Mako.Util;
 
 // ReSharper disable ParameterTypeCanBeEnumerable.Global
-namespace Mako.Shared
+namespace Mako
 {
     public static class MakoExtensions
     {

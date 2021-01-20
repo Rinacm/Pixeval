@@ -1,5 +1,4 @@
 ﻿#region Copyright (C) 2019-2020 Dylech30th. All rights reserved.
-
 // Pixeval - A Strong, Fast and Flexible Pixiv Client
 // Copyright (C) 2019-2020 Dylech30th
 // 
@@ -15,12 +14,11 @@
 // 
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #endregion
 
 using Refit;
 
-namespace Pixeval.Data.Web.Request
+namespace Mako.Net.RequestModel
 {
     public class FollowArtistRequest
     {

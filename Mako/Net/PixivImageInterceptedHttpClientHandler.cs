@@ -16,10 +16,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using Mako.Util;
+
 namespace Mako.Net
 {
-    public class PixivImageInterceptedHttpClientHandler
+    public class PixivImageInterceptedHttpClientHandler : InterceptedHttpClientHandler
     {
-        
+        public PixivImageInterceptedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient, makoClient.GetService<PixivImageHttpRequestInterceptor>())
+        {
+        }
     }
 }

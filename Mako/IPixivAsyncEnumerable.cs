@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mako.Shared
+namespace Mako
 {
     public interface IPixivAsyncEnumerable<E> : IAsyncEnumerable<E>, ICancellable
     {

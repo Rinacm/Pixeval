@@ -19,11 +19,10 @@
 #endregion
 
 using System;
+using Mako.Util;
 using Newtonsoft.Json;
-using Pixeval.Objects.Exceptions;
-using Pixeval.Objects.Primitive;
 
-namespace Pixeval.Data.Web.Response
+namespace Mako.Net.ResponseModel
 {
     public class TokenResponse
     {
@@ -117,7 +116,7 @@ namespace Pixeval.Data.Web.Response
                 {
                     return l;
                 }
-                throw new TypeMismatchException("Cannot unmarshal type long");
+                throw new InvalidOperationException("Cannot unmarshal type long");
             }
 
             public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)

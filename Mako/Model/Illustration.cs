@@ -22,7 +22,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 
-namespace Mako.Shared.Model
+namespace Mako.Model
 {
     [PublicAPI]
     public class Illustration : ICloneable

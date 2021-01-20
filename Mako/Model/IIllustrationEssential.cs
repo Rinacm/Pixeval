@@ -22,7 +22,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Mako.Shared.Model
+namespace Mako.Model
 {
     public static class IllustrationEssential
     {

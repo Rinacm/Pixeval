@@ -20,7 +20,7 @@ using System;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 
-namespace Mako.Shared
+namespace Mako
 {
     public class MakoEnumeratingNetworkException : Exception
     {

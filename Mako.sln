@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mako", "Mako\Mako.csproj", "{97626CF7-F6AD-42AD-9845-27D29E119657}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mako.Test", "Mako.Test\Mako.Test.csproj", "{A701A15D-76FC-4DC7-A240-E05526852CE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mako.Console", "Mako.Console\Mako.Console.csproj", "{0279FCF9-7EAA-4A8F-820C-284F7669BFC7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{97626CF7-F6AD-42AD-9845-27D29E119657}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97626CF7-F6AD-42AD-9845-27D29E119657}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97626CF7-F6AD-42AD-9845-27D29E119657}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97626CF7-F6AD-42AD-9845-27D29E119657}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A701A15D-76FC-4DC7-A240-E05526852CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A701A15D-76FC-4DC7-A240-E05526852CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A701A15D-76FC-4DC7-A240-E05526852CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A701A15D-76FC-4DC7-A240-E05526852CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0279FCF9-7EAA-4A8F-820C-284F7669BFC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0279FCF9-7EAA-4A8F-820C-284F7669BFC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0279FCF9-7EAA-4A8F-820C-284F7669BFC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0279FCF9-7EAA-4A8F-820C-284F7669BFC7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

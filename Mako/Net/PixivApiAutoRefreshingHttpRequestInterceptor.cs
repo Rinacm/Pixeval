@@ -25,12 +25,12 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class PixivApiHttpRequestInterceptor : IHttpRequestInterceptor
+    public class PixivApiAutoRefreshingHttpRequestInterceptor : IHttpRequestInterceptor
     {
         private readonly MakoClient makoClient;
         private readonly ManualResetEvent refreshing = new ManualResetEvent(true);
 
-        public PixivApiHttpRequestInterceptor([InjectMarker] MakoClient makoClient)
+        public PixivApiAutoRefreshingHttpRequestInterceptor([InjectMarker] MakoClient makoClient)
         {
             this.makoClient = makoClient;
         }
@@ -46,7 +46,7 @@ namespace Mako.Net
                 throw new TimeoutException("Refresh timeout");
             }
 
-            if (makoClient.ContextualBoundedSession != null && makoClient.ContextualBoundedSession.RefreshRequired() && !conf.OAuthHost.IsMatch(message.RequestUri.IdnHost))
+            if (makoClient.ContextualBoundedSession != null && makoClient.ContextualBoundedSession.RefreshRequired() && /* prevent recursion */ !conf.OAuthHost.IsMatch(message.RequestUri.IdnHost))
             {
                 using var semaphore = new SemaphoreSlim(1, 1);
                 await semaphore.WaitAsync();

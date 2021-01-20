@@ -18,23 +18,42 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Mako.Shared;
+using JetBrains.Annotations;
 
 namespace Mako.Internal
 {
-    public abstract class AbstractAsyncPixivEnumerator<E> : IAsyncEnumerator<E>
+    /// <summary>
+    /// Specified enumerator for Pixiv resources, <strong>IT IS TRANSIENT, CREATE A NEW INSTANCE ON EACH TIME YOU WANT TO USE IT</strong>
+    /// </summary>
+    /// <typeparam name="E">Model type</typeparam>
+    /// <typeparam name="C">Entity type</typeparam>
+    internal abstract class AbstractPixivAsyncEnumerator<E, C> : IAsyncEnumerator<E>
     {
         protected IPixivAsyncEnumerable<E> PixivEnumerable;
 
-        protected AbstractAsyncPixivEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable)
+        protected abstract IEnumerator<E> CurrentEntityEnumerator { get; set; }
+
+        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable)
         {
             PixivEnumerable = pixivEnumerable;
         }
 
-        public virtual ValueTask DisposeAsync() => default;
+        public virtual ValueTask DisposeAsync() => DisposeInternal();
+
+        private ValueTask DisposeInternal()
+        {
+            CurrentEntityEnumerator = null;
+            PixivEnumerable = null;
+            return default;
+        }
 
         public abstract ValueTask<bool> MoveNextAsync();
 
         public abstract E Current { get; }
+
+        protected abstract void UpdateEnumerator();
+
+        [ItemCanBeNull]
+        protected abstract Task<C> GetResponse(string url);
     }
 }

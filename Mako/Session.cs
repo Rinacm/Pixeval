@@ -23,7 +23,7 @@ using Mako.Net;
 using Mako.Net.ResponseModel;
 using Mako.Util;
 
-namespace Mako.Shared
+namespace Mako
 {
     [PublicAPI]
     public class Session

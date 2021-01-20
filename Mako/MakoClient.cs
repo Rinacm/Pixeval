@@ -23,17 +23,17 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Mako.Internal;
+using Mako.Model;
 using Mako.Net;
 using Mako.Net.Protocol;
 using Mako.Net.RequestModel;
-using Mako.Shared.Model;
 using Mako.Util;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Refit;
 
 // ReSharper disable once UseNameofExpression
-namespace Mako.Shared
+namespace Mako
 {
     /// <summary>
     /// Defines all the main functionalities by which Mako Framework can provide
@@ -82,7 +82,7 @@ namespace Mako.Shared
             MakoServices.AddSingleton<OrdinaryPixivImageDnsResolver>();
 
             // register the RequestInterceptor(used by HttpClientHandler) and the HttpClientHandler(used by HttpClient)
-            MakoServices.AddSingleton<PixivApiHttpRequestInterceptor>();
+            MakoServices.AddSingleton<PixivApiAutoRefreshingHttpRequestInterceptor>();
             MakoServices.AddSingleton<PixivImageHttpRequestInterceptor>();
             MakoServices.AddSingleton<PixivApiInterceptedHttpClientHandler>();
             MakoServices.AddSingleton<PixivImageInterceptedHttpClientHandler>();
@@ -93,7 +93,7 @@ namespace Mako.Shared
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client =>
             {
                 client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(10);
+                client.Timeout = TimeSpan.FromSeconds(5);
             }));
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
             {
@@ -169,6 +169,7 @@ namespace Mako.Shared
         /// <exception cref="AuthenticationTimeoutException">if it takes more than 10 seconds</exception>
         public async Task Refresh()
         {
+            EnsureUserLoggedIn();
             try
             {
                 var token = await GetService<IAuthProtocol>().RefreshToken(new RefreshTokenRequest { RefreshToken = ContextualBoundedSession.RefreshToken });
@@ -182,7 +183,20 @@ namespace Mako.Shared
 
         public IAsyncEnumerable<Illustration> Gallery(string uid, RestrictionPolicy restrictionPolicy)
         {
+            EnsureUserLoggedIn();
             return new GalleryAsyncEnumerable(this, uid, restrictionPolicy);
+        }
+
+        /// <summary>
+        /// Ensure that user has already call Login() before doing some context-aware action
+        /// </summary>
+        /// <exception cref="UserNotLoggedInException">if user is not logged in yet</exception>
+        private void EnsureUserLoggedIn()
+        {
+            if (ContextualBoundedSession == null || ContextualBoundedSession.AccessToken.IsNullOrEmpty())
+            {
+                throw new UserNotLoggedInException("cannot find an appropriate session object, consider call MakoClient::Login() first");
+            }
         }
     }
 }

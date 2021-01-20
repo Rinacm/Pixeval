@@ -16,7 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-namespace Mako.Shared.Model
+namespace Mako.Model
 {
     public class Tag
     {

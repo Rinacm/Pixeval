@@ -19,7 +19,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace Mako.Shared
+namespace Mako
 {
     public class AuthenticationTimeoutException : Exception
     {

@@ -6,10 +6,13 @@
 
     <ItemGroup>
       <Folder Include="Dispatch" />
-      <Folder Include="Internal" />
-      <Folder Include="Net" />
-      <Folder Include="Shared" />
-      <Folder Include="Util" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      <PackageReference Include="Refit" Version="5.2.4" />
     </ItemGroup>
 
 </Project>

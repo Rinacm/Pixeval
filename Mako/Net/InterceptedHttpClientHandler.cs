@@ -24,18 +24,18 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class InterceptedAutoRefreshingHttpClientHandler : HttpClientHandler
+    public class InterceptedHttpClientHandler : HttpClientHandler
     {
         private readonly MakoClient makoClient;
         private readonly IHttpRequestInterceptor interceptor;
         private volatile bool refreshing = false;
 
-        static InterceptedAutoRefreshingHttpClientHandler()
+        static InterceptedHttpClientHandler()
         {
             AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
         }
 
-        protected InterceptedAutoRefreshingHttpClientHandler([InjectMarker] MakoClient makoClient, IHttpRequestInterceptor interceptor)
+        protected InterceptedHttpClientHandler([InjectMarker] MakoClient makoClient, IHttpRequestInterceptor interceptor)
         {
             (this.makoClient, this.interceptor) = (makoClient, interceptor);
             ServerCertificateCustomValidationCallback = DangerousAcceptAnyServerCertificateValidator;
