@@ -42,7 +42,7 @@ namespace Mako.Net
 
         public string Cookie { get; set; }
 
-        public bool Bypass { get; set; } = true;
+        public bool Bypass { get; set; }
 
         public string MirrorHost { get; set; }
 

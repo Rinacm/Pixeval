@@ -16,7 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,14 +27,8 @@ namespace Mako.Net
     {
         private readonly MakoClient makoClient;
         private readonly IHttpRequestInterceptor interceptor;
-        private volatile bool refreshing = false;
 
-        static InterceptedHttpClientHandler()
-        {
-            AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
-        }
-
-        protected InterceptedHttpClientHandler([InjectMarker] MakoClient makoClient, IHttpRequestInterceptor interceptor)
+        protected InterceptedHttpClientHandler(MakoClient makoClient, IHttpRequestInterceptor interceptor)
         {
             (this.makoClient, this.interceptor) = (makoClient, interceptor);
             ServerCertificateCustomValidationCallback = DangerousAcceptAnyServerCertificateValidator;
@@ -43,10 +36,10 @@ namespace Mako.Net
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var task = interceptor?.Intercept(request, makoClient.ContextualBoundedSession?.ToPixivInterceptConfiguration() ?? new PixivRequestInterceptorConfiguration());
+            var task = interceptor?.Intercept(request, makoClient.ContextualBoundedSession.ToPixivInterceptConfiguration());
             if (task != null) await task;
 
-            return await Scopes.AttemptsAsync(() => base.SendAsync(request, cancellationToken));
+            return await Scopes.AttemptsAsync(() => base.SendAsync(request, cancellationToken), 2, request);
         }
     }
 }

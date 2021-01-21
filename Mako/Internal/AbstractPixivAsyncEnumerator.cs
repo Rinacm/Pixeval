@@ -38,6 +38,8 @@ namespace Mako.Internal
             PixivEnumerable = pixivEnumerable;
         }
 
+        protected bool IsCancellationRequested => PixivEnumerable.Cancelled;
+
         public virtual ValueTask DisposeAsync() => DisposeInternal();
 
         private ValueTask DisposeInternal()
@@ -49,11 +51,12 @@ namespace Mako.Internal
 
         public abstract ValueTask<bool> MoveNextAsync();
 
+        [CanBeNull]
         public abstract E Current { get; }
 
-        protected abstract void UpdateEnumerator();
+        protected abstract void UpdateEnumerator(C entity);
 
         [ItemCanBeNull]
-        protected abstract Task<C> GetResponse(string url);
+        protected abstract Task<C> GetResponseOrThrow(string url);
     }
 }

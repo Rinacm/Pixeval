@@ -36,7 +36,6 @@ namespace Mako.Test
             {
                 if (illustration == null)
                 {
-                    Console.WriteLine("null hit");
                     continue;
                 }
 

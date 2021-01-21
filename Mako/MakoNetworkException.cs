@@ -16,12 +16,32 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
+using System.Runtime.Serialization;
+using JetBrains.Annotations;
+
 namespace Mako
 {
-    public interface ICancellable
+    [PublicAPI]
+    public class MakoNetworkException : Exception
     {
-        bool Cancelled { get; set; }
+        public bool Bypass { get; }
 
-        public void Cancel() => Cancelled = true;
+        public string Url { get; set; }
+
+        public MakoNetworkException()
+        {
+        }
+
+        protected MakoNetworkException([NotNull] SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        public MakoNetworkException([CanBeNull] string message, bool bypass, string url = null, Exception cause = null)
+            : base(message, cause) => (Bypass, Url) = (bypass, url);
+
+        public MakoNetworkException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }

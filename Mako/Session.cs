@@ -52,7 +52,7 @@ namespace Mako
 
         public string Cookie { get; set; }
 
-        public bool Bypass { get; set; } = true;
+        public bool Bypass { get; set; }
 
         public string MirrorHost { get; set; }
 
@@ -85,10 +85,10 @@ namespace Mako
             };
         }
 
-        public static Session Parse(TokenResponse tokenResponse, string password, Session previousSession = null)
+        public static Session Parse(TokenResponse tokenResponse, string password, Session previousSession)
         {
             var response = tokenResponse.ToResponse;
-            var session = (Session) previousSession?.MemberwiseClone() ?? new Session();
+            var session = (Session) previousSession.MemberwiseClone();
             session.TokenRefreshed = DateTime.Now;
             session.Name = response.User.Name;
             session.ExpireIn = DateTime.Now + TimeSpan.FromSeconds(response.ExpiresIn);

@@ -86,6 +86,11 @@ namespace Mako.Util
             if (receiver) action();
         }
 
+        public static R IfTrue<R>(this bool receiver, Func<R> func)
+        {
+            return receiver ? func() : default;
+        }
+
         /// <summary>
         /// Invoke <see cref="Func{R}"/> on <paramref name="receiver"/> if <paramref name="receiver"/> is true
         /// </summary>
@@ -121,22 +126,29 @@ namespace Mako.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T OrElseNull<T>(this bool value, T ifTrue)
         {
-            return value ? ifTrue : default;
+            return value.OrElse(ifTrue, () => default);
+        }
+
+        public static R OrElse<R>(this bool value, R ifTrue, Func<R> ifFalseFactory)
+        {
+            return value ? ifTrue : ifFalseFactory();
         }
 
         /// <summary>
         /// Attempts to invoke <see cref="Func{R}"/>, and retries until <paramref name="times"/>
         /// is exceeded
         /// </summary>
-        /// <param name="body"></param>
-        /// <param name="times"></param>
-        /// <param name="exceptionHandler"></param>
-        /// <typeparam name="R"></typeparam>
+        /// <param name="body">retry body</param>
+        /// <param name="times">max retries</param>
+        /// <param name="extraMessage"></param>
+        /// <param name="caller">caller method</param>
+        /// <typeparam name="R">return type</typeparam>
         /// <returns></returns>
-        /// <exception cref="MaxRetryCountExceededException"></exception>
-        public static R Attempts<R>(Func<R> body, int times = 3, Action<Exception> exceptionHandler = null)
+        /// <exception cref="MaxRetriesExceededException">if max retries exceeded</exception>
+        public static R Attempts<R>(Func<R> body, int times = 3, object extraMessage = null, [CallerMemberName] string caller = null)
         {
             var counter = 0;
+            Exception cause = null;
             while (counter++ < times)
             {
                 try
@@ -145,26 +157,28 @@ namespace Mako.Util
                 }
                 catch (Exception e)
                 {
-                    exceptionHandler?.Invoke(e);
+                    cause = e;
                 }
             }
 
-            throw new MaxRetryCountExceededException();
+            throw Errors.MaxRetriesExceeded(body.Method, cause, times, caller, extraMessage);
         }
 
         /// <summary>
         /// Asynchronously attempts to invoke <see cref="Func{R}"/>, and retries until <paramref name="times"/>
         /// is exceeded
         /// </summary>
-        /// <param name="body"></param>
-        /// <param name="times"></param>
-        /// <param name="exceptionHandler"></param>
-        /// <typeparam name="R"></typeparam>
+        /// <param name="body">retry body</param>
+        /// <param name="times">max retries</param>
+        /// <param name="extraMessage"></param>
+        /// <param name="caller">caller method</param>
+        /// <typeparam name="R">return type</typeparam>
         /// <returns></returns>
-        /// <exception cref="MaxRetryCountExceededException"></exception>
-        public static async Task<R> AttemptsAsync<R>(Func<Task<R>> body, int times = 3, Action<Exception> exceptionHandler = null)
+        /// <exception cref="MaxRetriesExceededException"></exception>
+        public static async Task<R> AttemptsAsync<R>(Func<Task<R>> body, int times = 3, object extraMessage = null, [CallerMemberName] string caller = null)
         {
             var counter = 0;
+            Exception cause = null;
             while (counter++ < times)
             {
                 try
@@ -173,11 +187,22 @@ namespace Mako.Util
                 }
                 catch (Exception e)
                 {
-                    exceptionHandler?.Invoke(e);
+                    cause = e;
                 }
             }
 
-            throw new MaxRetryCountExceededException();
+            throw Errors.MaxRetriesExceeded(body.Method, cause, times, caller, extraMessage);
+        }
+
+        public static T NullIfFalse<T>(this T value, Func<bool> function)
+        {
+            return value.Check(function).OrElseNull(value);
+        }
+
+        public static T Also<T>(this T receiver, Action<T> action)
+        {
+            action(receiver);
+            return receiver;
         }
     }
 }

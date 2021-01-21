@@ -19,7 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Mako.Internal;
@@ -66,9 +68,33 @@ namespace Mako
         public IServiceCollection MakoServices { get; }
 
         /// <summary>
+        /// CultureInfo of current <see cref="MakoClient"/>
+        /// </summary>
+        public CultureInfo ClientCulture { get; set; }
+
+        /// <summary>
         /// Accessor to access the instances in <see cref="MakoServices"/>
         /// </summary>
         private IServiceProvider MakoServiceProvider => MakoServices.BuildServiceProvider();
+
+        private CancellationToken cancellationToken;
+
+        /// <summary>
+        /// Get or set the <see cref="CancellationToken"/> to cancel all enumerating operations
+        /// </summary>
+        public CancellationToken CancellationToken
+        {
+            get => cancellationToken;
+            set
+            {
+                cancellationToken = value;
+                cancellationToken.Register(() => registeredOperations.ForEach(op => op.Cancelled = true));
+            }
+        }
+
+        private readonly List<ICancellable> registeredOperations = new List<ICancellable>();
+
+        static MakoClient() => AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
 
         private MakoClient()
         {
@@ -81,8 +107,8 @@ namespace Mako
             MakoServices.AddSingleton<OrdinaryPixivDnsResolver>();
             MakoServices.AddSingleton<OrdinaryPixivImageDnsResolver>();
 
-            // register the RequestInterceptor(used by HttpClientHandler) and the HttpClientHandler(used by HttpClient)
-            MakoServices.AddSingleton<PixivApiAutoRefreshingHttpRequestInterceptor>();
+            // register the RequestInterceptor and the HttpClientHandler
+            MakoServices.AddSingleton<PixivApiLocalizedAutoRefreshingHttpRequestInterceptor>();
             MakoServices.AddSingleton<PixivImageHttpRequestInterceptor>();
             MakoServices.AddSingleton<PixivApiInterceptedHttpClientHandler>();
             MakoServices.AddSingleton<PixivImageInterceptedHttpClientHandler>();
@@ -90,11 +116,7 @@ namespace Mako
             // register all the required HttpClients among entire application lifetime
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.AppApiBaseUrl)));
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.WebApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client =>
-            {
-                client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(5);
-            }));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl)));
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
             {
                 client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "http://www.pixiv.net");
@@ -110,13 +132,14 @@ namespace Mako
             MakoServices.AddSingleton(RestService.For<IAuthProtocol>(GetMakoTaggedHttpClient(MakoHttpClientKind.Auth)));
         }
 
-        /// <summary>
-        /// Constructs a new <see cref="MakoClient"/>
-        /// </summary>
-        /// <param name="account">Pixiv account/ID/email</param>
-        /// <param name="password">Pixiv password</param>
-        public MakoClient(string account, string password) : this() => (this.account, this.password, Identifier) = (account, password, Guid.NewGuid());
-
+        public MakoClient(string account, string password, bool bypass = true, CultureInfo clientCulture = null) : this()
+        {
+            (this.account, this.password, Identifier, ClientCulture) = (account, password, Guid.NewGuid(), clientCulture ?? CultureInfo.InstalledUICulture);
+            ContextualBoundedSession = new Session
+            {
+                Bypass = bypass
+            };
+        }
         /// <summary>
         /// Acquires an instance of <typeparamref name="T"/> from <see cref="MakoServices"/>
         /// </summary>
@@ -154,11 +177,11 @@ namespace Mako
             try
             {
                 var token = await GetService<IAuthProtocol>().GetTokenByPassword(new PasswordTokenRequest { Name = account, Password = password }, time, hash);
-                ContextualBoundedSession = Session.Parse(token, password);
+                ContextualBoundedSession = Session.Parse(token, password, ContextualBoundedSession);
             }
-            catch (TaskCanceledException)
+            catch (Exception e)
             {
-                throw new AuthenticationTimeoutException("Password login timeout");
+                throw SelectException(e);
             }
         }
 
@@ -175,17 +198,28 @@ namespace Mako
                 var token = await GetService<IAuthProtocol>().RefreshToken(new RefreshTokenRequest { RefreshToken = ContextualBoundedSession.RefreshToken });
                 ContextualBoundedSession = Session.Parse(token, password, ContextualBoundedSession);
             }
-            catch (TaskCanceledException)
+            catch (Exception e)
             {
-                throw new AuthenticationTimeoutException("Password login timeout");
+                throw SelectException(e);
             }
         }
 
-        public IAsyncEnumerable<Illustration> Gallery(string uid, RestrictionPolicy restrictionPolicy)
+        /// <summary>
+        /// Get a user's collection by using <see cref="RestrictionPolicy"/> to indicate the publicity,
+        /// be aware that <see cref="RestrictionPolicy"/> is only useful when the <paramref name="uid"/>
+        /// is exactly representing yourself, otherwise you will get the same result regardless the
+        /// value of <see cref="RestrictionPolicy"/>
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="restrictionPolicy"></param>
+        /// <returns></returns>
+        public IPixivAsyncEnumerable<Illustration> Gallery(string uid, RestrictionPolicy restrictionPolicy)
         {
             EnsureUserLoggedIn();
-            return new GalleryAsyncEnumerable(this, uid, restrictionPolicy);
+            return new GalleryAsyncEnumerable(this, uid, restrictionPolicy).Also(RegisterOperation);
         }
+
+        private void RegisterOperation(ICancellable cancellable) => registeredOperations.Add(cancellable);
 
         /// <summary>
         /// Ensure that user has already call Login() before doing some context-aware action
@@ -196,6 +230,37 @@ namespace Mako
             if (ContextualBoundedSession == null || ContextualBoundedSession.AccessToken.IsNullOrEmpty())
             {
                 throw new UserNotLoggedInException("cannot find an appropriate session object, consider call MakoClient::Login() first");
+            }
+        }
+
+        /// <summary>
+        /// Semantically ambiguous, for internal use only
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns></returns>
+        private Exception SelectException(Exception e)
+        {
+            return e switch
+            {
+                TaskCanceledException _   => Errors.AuthenticationTimeout(account, password, true, true),
+                ApiException apiException => ExamineApiException(apiException),
+                _                         => e
+            };
+
+            Exception ExamineApiException(ApiException apiException)
+            {
+                var message = apiException.Content.FromJson<dynamic>();
+                var system = message?.errors?.system;
+                if (system?.code == 1508)
+                {
+                    var value = system.message?.Value?.ToString();
+                    if (value?.StartsWith("103:"))
+                        return Errors.LoginFailed(password, LoginFailedKind.Password, account);
+                    if (value?.Equals("Invalid refresh token"))
+                        return Errors.LoginFailed(ContextualBoundedSession.RefreshToken, LoginFailedKind.RefreshToken);
+                }
+
+                return apiException.ToMakoNetworkException(ContextualBoundedSession.Bypass);
             }
         }
     }

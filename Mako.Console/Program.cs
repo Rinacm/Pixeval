@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Mako.Model;
 
 namespace Mako.Console
 {
@@ -8,10 +10,14 @@ namespace Mako.Console
         {
             var makoClient = new MakoClient("account", "password");
             await makoClient.Login();
-            await foreach (var illustration in makoClient.Gallery(makoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
+            var list = new List<Illustration>();
+            await foreach (var illustration in makoClient.Gallery(makoClient.ContextualBoundedSession.Id, RestrictionPolicy.Private))
             {
-                System.Console.WriteLine(illustration.Title);
+                list.Add(illustration);
+                if (illustration != null) System.Console.WriteLine(illustration.Title);
             }
+
+            System.Console.WriteLine(list.Count);
         }
     }
 }

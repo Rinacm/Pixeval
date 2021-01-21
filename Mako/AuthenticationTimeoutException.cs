@@ -18,14 +18,28 @@
 
 using System;
 using System.Runtime.Serialization;
+using JetBrains.Annotations;
+using Mako.Util;
 
 namespace Mako
 {
+    [PublicAPI]
     public class AuthenticationTimeoutException : Exception
     {
-        public AuthenticationTimeoutException()
+        public bool Refreshing { get; }
+
+        public string Account { get; }
+
+        public string Certificate { get; }
+
+        public bool Bypass { get; }
+
+        public AuthenticationTimeoutException(string account, string certificate, bool bypass, bool refreshing)
+            : this($"Error occurs while attempting to authenticate {account} {bypass.IfTrue(() => "(bypassing)")} {refreshing.IfTrue(() => "(refreshing)")}")
         {
+            (Account, Certificate, Bypass, Refreshing) = (account, certificate, bypass, refreshing);
         }
+
 
         protected AuthenticationTimeoutException(SerializationInfo info, StreamingContext context) : base(info, context)
         {

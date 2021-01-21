@@ -18,15 +18,27 @@
 
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Mako
 {
+    [PublicAPI]
     public interface IPixivAsyncEnumerable<E> : IAsyncEnumerable<E>, ICancellable
     {
         int RequestedPages { get; set; }
 
+        /// <summary>
+        /// Indicates how does <see cref="IPixivAsyncEnumerable{E}"/> insert an item to a <see cref="IList{E}"/>
+        /// </summary>
+        /// <returns></returns>
         Action<IList<E>, E> InsertPolicy();
 
+        /// <summary>
+        /// Check if <paramref name="item"/> is valid to be inserted into <see cref="IList{T}"/>
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="collection"></param>
+        /// <returns></returns>
         bool Validate(E item, IList<E> collection);
     }
 }

@@ -17,26 +17,38 @@
 #endregion
 
 using System;
+using System.Reflection;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 
 namespace Mako
 {
-    public class MaxRetryCountExceededException : Exception
+    [PublicAPI]
+    public class MaxRetriesExceededException : Exception
     {
-        public MaxRetryCountExceededException()
+        public object ExtraMessage { get; }
+
+        public MethodInfo ExecutionBody { get; }
+
+        public int MaxRetries { get; }
+
+        public string Caller { get; }
+
+        public MaxRetriesExceededException(MethodInfo executionBody, Exception cause, int maxRetries, string caller, object extraMessage)
+            : this($"Max retries exceeded when attempting to invoke {executionBody} in {caller} after {maxRetries} times", cause)
+        {
+            (ExecutionBody, MaxRetries, Caller, ExtraMessage) = (executionBody, maxRetries, caller, extraMessage);
+        }
+
+        protected MaxRetriesExceededException([NotNull] SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
 
-        protected MaxRetryCountExceededException([NotNull] SerializationInfo info, StreamingContext context) : base(info, context)
+        public MaxRetriesExceededException([CanBeNull] string message) : base(message)
         {
         }
 
-        public MaxRetryCountExceededException([CanBeNull] string message) : base(message)
-        {
-        }
-
-        public MaxRetryCountExceededException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
+        public MaxRetriesExceededException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
         {
         }
     }

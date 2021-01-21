@@ -22,7 +22,7 @@ namespace Mako.Net
 {
     public class PixivApiInterceptedHttpClientHandler : InterceptedHttpClientHandler
     {
-        public PixivApiInterceptedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient, makoClient.GetService<PixivApiAutoRefreshingHttpRequestInterceptor>())
+        public PixivApiInterceptedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient, makoClient.GetService<PixivApiLocalizedAutoRefreshingHttpRequestInterceptor>())
         {
         }
     }

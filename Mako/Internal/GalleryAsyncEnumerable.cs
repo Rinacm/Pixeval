@@ -61,22 +61,19 @@ namespace Mako.Internal
             public GalleryAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
                 : base(pixivEnumerable) => (this.restrictionPolicy, this.uid, this.makoClient) = (restrictionPolicy, uid, makoClient);
 
-            protected override void UpdateEnumerator()
+            protected override void UpdateEnumerator(GalleryResponse entity)
             {
+                current = entity;
                 CurrentEntityEnumerator = current.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
             public override async ValueTask<bool> MoveNextAsync()
             {
+                if (IsCancellationRequested)
+                    return false; // fast-path
                 if (current == null)
                 {
-                    if (await GetResponse(ConstructUrl()) is { } galleryResponse)
-                    {
-                        current = galleryResponse;
-                        UpdateEnumerator();
-                    }
-                    else throw new MakoEnumeratingNetworkException($"Enumerator: {nameof(GalleryAsyncEnumerator)}. Uid: {uid}. Pages: {PixivEnumerable.RequestedPages}");
-
+                    UpdateEnumerator(await GetResponseOrThrow(ConstructUrl()));
                     PixivEnumerable.RequestedPages++;
                 }
 
@@ -85,15 +82,9 @@ namespace Mako.Internal
                 if (current.NextUrl.IsNullOrEmpty())
                     return false;
 
-                if (await GetResponse(current.NextUrl) is { } response)
-                {
-                    current = response;
-                    UpdateEnumerator();
-                    PixivEnumerable.RequestedPages++;
-                    return true;
-                }
-
-                return false;
+                UpdateEnumerator(await GetResponseOrThrow(current.NextUrl));
+                PixivEnumerable.RequestedPages++;
+                return true;
             }
 
             private string ConstructUrl()
@@ -106,10 +97,17 @@ namespace Mako.Internal
                 };
             }
 
-            protected override async Task<GalleryResponse> GetResponse(string url)
+            protected override async Task<GalleryResponse> GetResponseOrThrow(string url)
             {
                 var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<GalleryResponse>(url);
-                return result.Check(() => result.Illusts.IsNotNullOrEmpty()).OrElseNull(result);
+                return result.NullIfFalse(() => result.Illusts.IsNotNullOrEmpty()) ??
+                    throw Errors.EnumeratingNetworkException(
+                        nameof(GalleryAsyncEnumerable),
+                        nameof(GalleryAsyncEnumerator),
+                        MakoUrls.AppApiBaseUrl + ConstructUrl(), PixivEnumerable.RequestedPages,
+                        $"The result collection is empty, this mostly indicates that the user with specified Uid: {uid} does not exists.",
+                        makoClient.ContextualBoundedSession.Bypass
+                    );
             }
         }
     }

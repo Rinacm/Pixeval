@@ -25,26 +25,28 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class PixivApiAutoRefreshingHttpRequestInterceptor : IHttpRequestInterceptor
+    public class PixivApiLocalizedAutoRefreshingHttpRequestInterceptor : IHttpRequestInterceptor
     {
         private readonly MakoClient makoClient;
         private readonly ManualResetEvent refreshing = new ManualResetEvent(true);
 
-        public PixivApiAutoRefreshingHttpRequestInterceptor([InjectMarker] MakoClient makoClient)
+        public PixivApiLocalizedAutoRefreshingHttpRequestInterceptor([InjectMarker] MakoClient makoClient)
         {
             this.makoClient = makoClient;
         }
 
         public async Task Intercept(HttpRequestMessage message, IInterceptConfigurations configurations)
         {
+            if (!refreshing.WaitOne(TimeSpan.FromSeconds(10)))
+            {
+                throw Errors.AuthenticationTimeout(null, makoClient.ContextualBoundedSession.RefreshToken, true, true);
+            }
+
             var conf = configurations as PixivRequestInterceptorConfiguration ?? throw new InvalidCastException($"{nameof(configurations)} must be {nameof(PixivRequestInterceptorConfiguration)}");
             var headers = message.Headers;
             var host = message.RequestUri.IdnHost;
 
-            if (!refreshing.WaitOne(TimeSpan.FromSeconds(10)))
-            {
-                throw new TimeoutException("Refresh timeout");
-            }
+            message.Headers.TryAddWithoutValidation("Accept-Language", makoClient.ClientCulture.Name);
 
             if (makoClient.ContextualBoundedSession != null && makoClient.ContextualBoundedSession.RefreshRequired() && /* prevent recursion */ !conf.OAuthHost.IsMatch(message.RequestUri.IdnHost))
             {
@@ -59,6 +61,7 @@ namespace Mako.Net
             {
                 headers.Authorization.IfNull(() => headers.Authorization = new AuthenticationHeaderValue("Bearer", conf.Token));
             }
+
             if (conf.BypassHost.IsMatch(host) && conf.Bypass || conf.OAuthHost.IsMatch(host))
             {
                 ReplaceRequest(message);

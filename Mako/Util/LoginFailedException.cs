@@ -20,23 +20,38 @@ using System;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 
-namespace Mako
+namespace Mako.Util
 {
-    public class MakoEnumeratingNetworkException : Exception
+    public enum LoginFailedKind
     {
-        public MakoEnumeratingNetworkException()
+        Password, RefreshToken
+    }
+
+    [PublicAPI]
+    public class LoginFailedException : Exception
+    {
+        public LoginFailedKind Reason { get; }
+
+        public string Certificate { get; }
+
+        [CanBeNull]
+        public string Account { get; }
+
+        public LoginFailedException(string certificate, LoginFailedKind reason, string account = null)
+            : this($"Login failed due to error certificate: {certificate} (login by {reason})")
+        {
+            (Reason, Certificate, Account) = (reason, certificate, account);
+        }
+
+        protected LoginFailedException([NotNull] SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
 
-        protected MakoEnumeratingNetworkException([NotNull] SerializationInfo info, StreamingContext context) : base(info, context)
+        public LoginFailedException([CanBeNull] string message) : base(message)
         {
         }
 
-        public MakoEnumeratingNetworkException([CanBeNull] string message) : base(message)
-        {
-        }
-
-        public MakoEnumeratingNetworkException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
+        public LoginFailedException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
         {
         }
     }
