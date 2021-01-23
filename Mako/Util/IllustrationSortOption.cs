@@ -16,24 +16,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
+using Mako.Internal;
 
 namespace Mako.Util
 {
-    /// <summary>
-    /// Just a marker to mark a field/property/parameter as injected
-    /// </summary>
-    public class InjectMarker : Attribute
+    public enum IllustrationSortOption
     {
-    }
+        /// <summary>
+        /// Sort by bookmarks
+        /// </summary>
+        [EnumMetadata(typeof(IllustrationPopularityComparator))]
+        Popularity,
 
-    public class EnumMetadata : Attribute
-    {
-        public object Data { get; set; }
-
-        public EnumMetadata(object metadata)
-        {
-            Data = metadata;
-        }
+        /// <summary>
+        /// Sort by publish date
+        /// </summary>
+        [EnumMetadata(typeof(IllustrationPublishDateComparator))]
+        PublishDate
     }
 }

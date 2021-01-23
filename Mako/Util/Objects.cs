@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -118,6 +119,23 @@ namespace Mako.Util
         public static async Task<T> GetJsonAsync<T>(this HttpClient httpClient, string url)
         {
             return (await httpClient.GetStringAsync(url)).FromJson<T>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int CoerceAt(this int value, int least)
+        {
+            return value < least ? least : value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint CoerceAt(this uint value, uint least)
+        {
+            return (uint) ((int) value).CoerceAt((int) least);
+        }
+
+        public static object GetEnumMetadataContent(this Enum value)
+        {
+            return value.GetType().GetField(value.ToString())!.GetCustomAttribute<EnumMetadata>(false)?.Data;
         }
     }
 }

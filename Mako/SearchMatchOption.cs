@@ -16,24 +16,34 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
+using JetBrains.Annotations;
+using Mako.Util;
 
-namespace Mako.Util
+namespace Mako
 {
     /// <summary>
-    /// Just a marker to mark a field/property/parameter as injected
+    /// Indicates how to match the keyword with correspond illustrations
     /// </summary>
-    public class InjectMarker : Attribute
+    [PublicAPI]
+    public enum SearchMatchOption
     {
-    }
 
-    public class EnumMetadata : Attribute
-    {
-        public object Data { get; set; }
+        /// <summary>
+        /// Partial match (tags)
+        /// </summary>
+        [EnumMetadata("partial_match_for_tags")]
+        PartialMatchForTags,
 
-        public EnumMetadata(object metadata)
-        {
-            Data = metadata;
-        }
+        /// <summary>
+        /// Exact match (tags)
+        /// </summary>
+        [EnumMetadata("exact_match_for_tags")]
+        ExactMatchForTags,
+
+        /// <summary>
+        /// Match the title and caption
+        /// </summary>
+        [EnumMetadata("title_and_caption")]
+        TitleAndCaption
     }
 }

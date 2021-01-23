@@ -99,13 +99,16 @@ namespace Mako
         private MakoClient()
         {
             MakoServices = new ServiceCollection();
-            // registration ordering is important, do not change the order unless the class structure is modified
 
             MakoServices.AddSingleton(this);
 
             // register the DNS resolver
             MakoServices.AddSingleton<OrdinaryPixivDnsResolver>();
             MakoServices.AddSingleton<OrdinaryPixivImageDnsResolver>();
+
+            // register the illustration comparators
+            MakoServices.AddSingleton<IllustrationPopularityComparator>();
+            MakoServices.AddSingleton<IllustrationPublishDateComparator>();
 
             // register the RequestInterceptor and the HttpClientHandler
             MakoServices.AddSingleton<PixivApiLocalizedAutoRefreshingHttpRequestInterceptor>();
@@ -140,12 +143,15 @@ namespace Mako
                 Bypass = bypass
             };
         }
+
         /// <summary>
         /// Acquires an instance of <typeparamref name="T"/> from <see cref="MakoServices"/>
         /// </summary>
         /// <typeparam name="T">instance type</typeparam>
         /// <returns>instance</returns>
-        internal T GetService<T>() => MakoServiceProvider.GetService<T>();
+        internal T GetService<T>() => GetService<T>(typeof(T));
+
+        internal T GetService<T>(Type type) => (T) MakoServiceProvider.GetService(type);
 
         /// <summary>
         /// Replaces an instance in <see cref="MakoServices"/>
