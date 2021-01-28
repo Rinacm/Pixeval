@@ -19,7 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Mako.Model;
+using Mako.Net.ResponseModel;
 using Mako.Util;
 
 namespace Mako.Internal
@@ -56,6 +58,35 @@ namespace Mako.Internal
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             throw new System.NotImplementedException();
+        }
+
+        private class KeywordSearchAsyncEnumerator : AbstractPixivAsyncEnumerator<QueryWorksResponse, Illustration>
+        {
+            private readonly int current;
+            private readonly bool isPremium;
+            private readonly string keyword;
+            private readonly SearchMatchOption matchOption;
+
+            public KeywordSearchAsyncEnumerator(IPixivAsyncEnumerable<QueryWorksResponse> pixivEnumerable, int current, bool isPremium, string keyword, SearchMatchOption matchOption)
+                : base(pixivEnumerable) => (this.current, this.isPremium, this.keyword, this.matchOption) = (current, isPremium, keyword, matchOption);
+
+            public override QueryWorksResponse Current => CurrentEntityEnumerator.Current;
+
+            protected override IEnumerator<QueryWorksResponse> CurrentEntityEnumerator { get; set; }
+            public override ValueTask<bool> MoveNextAsync()
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void UpdateEnumerator(Illustration entity)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override Task<Illustration> GetResponseOrThrow(string url)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }
