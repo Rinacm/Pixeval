@@ -26,6 +26,11 @@ namespace Mako
 {
     public static class MakoExtensions
     {
+        public static bool DistinctTagCorrespondenceValidation(this Illustration item, IList<Illustration> collection, Session session)
+        {
+            return item.Check(() => collection.All(i => i.Id != item.Id) && item.Validate(session.ExcludeTags, session.IncludeTags, session.MinBookmark));
+        }
+
         public static bool Validate(this Illustration illustration, ISet<string> excludeTags, ISet<string> includeTags, int minBookmarks)
         {
             return illustration.Check(() =>

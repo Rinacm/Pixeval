@@ -140,7 +140,9 @@ namespace Mako
             (this.account, this.password, Identifier, ClientCulture) = (account, password, Guid.NewGuid(), clientCulture ?? CultureInfo.InstalledUICulture);
             ContextualBoundedSession = new Session
             {
-                Bypass = bypass
+                Bypass = bypass,
+                KeywordSearchMatchOption = SearchMatchOption.PartialMatchForTags,
+                IllustrationSortOption = IllustrationSortOption.None
             };
         }
 
@@ -212,7 +214,7 @@ namespace Mako
 
         /// <summary>
         /// Get a user's collection by using <see cref="RestrictionPolicy"/> to indicate the publicity,
-        /// be aware that <see cref="RestrictionPolicy"/> is only useful when the <paramref name="uid"/>
+        /// be aware that <see cref="RestrictionPolicy"/> is only useful when <paramref name="uid"/>
         /// is exactly representing yourself, otherwise you will get the same result regardless the
         /// value of <see cref="RestrictionPolicy"/>
         /// </summary>
@@ -223,6 +225,28 @@ namespace Mako
         {
             EnsureUserLoggedIn();
             return new GalleryAsyncEnumerable(this, uid, restrictionPolicy).Also(RegisterOperation);
+        }
+
+        /// <summary>
+        /// Search illustrations according to <see cref="keyword"/>
+        /// </summary>
+        /// <param name="keyword">keyword</param>
+        /// <param name="start">
+        /// set the illust index you want to start at, it must between 1(inclusive) to 5000(exclusive), default value is 1
+        /// </param>
+        /// <param name="searchCount">
+        /// how many illusts will be searched, -1 to indicates you want to search as many as possible, extras will be discarded
+        /// if it's more than the numbers of all possible illusts(around 5000).
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">if <see cref="start"/> is not in range [1, 5000)</exception>
+        /// <returns></returns>
+        public IPixivAsyncEnumerable<Illustration> Search(string keyword, uint start = 1, int searchCount = -1)
+        {
+            if (start < 1 || start >= 5000)
+                throw Errors.ArgumentOutOfRange($"desire range: [1, 5000), actual value: start({start})");
+
+            EnsureUserLoggedIn();
+            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount);
         }
 
         private void RegisterOperation(ICancellable cancellable) => registeredOperations.Add(cancellable);

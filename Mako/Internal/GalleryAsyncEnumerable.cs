@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Mako.Model;
@@ -38,8 +37,7 @@ namespace Mako.Internal
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
         {
-            var session = MakoClient.ContextualBoundedSession;
-            return item.Check(() => collection.All(i => i.Id != item.Id) && item.Validate(session.ExcludeTags, session.IncludeTags, session.MinBookmark));
+            return item.DistinctTagCorrespondenceValidation(collection, MakoClient.ContextualBoundedSession);
         }
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
@@ -104,7 +102,7 @@ namespace Mako.Internal
                     throw Errors.EnumeratingNetworkException(
                         nameof(GalleryAsyncEnumerable),
                         nameof(GalleryAsyncEnumerator),
-                        MakoUrls.AppApiBaseUrl + ConstructUrl(), PixivEnumerable.RequestedPages,
+                        url, PixivEnumerable.RequestedPages,
                         $"The result collection is empty, this mostly indicates that the user with specified Uid: {uid} does not exists.",
                         makoClient.ContextualBoundedSession.Bypass
                     );

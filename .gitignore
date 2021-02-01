@@ -3,6 +3,7 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+account-info.json
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudio,windows,rider,csharp
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudio,windows,rider,csharp

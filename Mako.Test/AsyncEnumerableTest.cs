@@ -24,20 +24,34 @@ using NUnit.Framework;
 
 namespace Mako.Test
 {
+    [Order(4)]
     public class AsyncEnumerableTest
     {
+        private static MakoClient MakoClient => Global.MakoClient;
+
         [Test]
         public async Task GalleryTest()
         {
-            var makoClient = Global.MakoClient;
-            await makoClient.Login();
             var list = new List<Illustration>();
-            await foreach (var illustration in makoClient.Gallery(makoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
+            await foreach (var illustration in MakoClient.Gallery(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
             {
                 if (illustration == null)
-                {
                     continue;
-                }
+
+                Console.WriteLine(illustration.Title);
+                list.Add(illustration);
+            }
+            Assert.IsNotEmpty(list);
+        }
+
+        [Test]
+        public async Task KeywordSearchTest()
+        {
+            var list = new List<Illustration>();
+            await foreach (var illustration in MakoClient.Search("東方project", searchCount: 1000))
+            {
+                if (illustration == null)
+                    continue;
 
                 Console.WriteLine(illustration.Title);
                 list.Add(illustration);

@@ -53,5 +53,10 @@ namespace Mako.Util
         {
             return new MakoNetworkException(apiException.Message, bypass, apiException.Uri.ToString(), apiException);
         }
+
+        public static ArgumentOutOfRangeException ArgumentOutOfRange(string message)
+        {
+            return new ArgumentOutOfRangeException(message);
+        }
     }
 }

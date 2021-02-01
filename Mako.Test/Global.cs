@@ -16,10 +16,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System.IO;
+using Mako.Util;
+
 namespace Mako.Test
 {
     public static class Global
     {
-        public static readonly MakoClient MakoClient = new MakoClient("account", "password");
+        public static readonly MakoClient MakoClient;
+
+        static Global()
+        {
+            var accountInfo = File.ReadAllText(@"C:\Projects\misc\pixiv-account-info.json").FromJson<dynamic>();
+            MakoClient = new MakoClient(accountInfo.account.ToString(), accountInfo.password.ToString());
+        }
     }
 }

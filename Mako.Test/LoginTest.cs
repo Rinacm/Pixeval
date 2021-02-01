@@ -22,6 +22,7 @@ using NUnit.Framework;
 
 namespace Mako.Test
 {
+    [Order(0)]
     public class LoginTest
     {
         [Test, Order(1)]

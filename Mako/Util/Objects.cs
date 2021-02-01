@@ -122,15 +122,15 @@ namespace Mako.Util
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int CoerceAt(this int value, int least)
+        public static int CoerceAt(this int value, int min, int max)
         {
-            return value < least ? least : value;
+            return value < min ? min : value > max ? max : value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint CoerceAt(this uint value, uint least)
+        public static uint CoerceAt(this uint value, uint min, uint max)
         {
-            return (uint) ((int) value).CoerceAt((int) least);
+            return value < min ? min : value > max ? max : value;
         }
 
         public static object GetEnumMetadataContent(this Enum value)

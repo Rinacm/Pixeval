@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Mako.Model;
+using Mako.Net;
 using Mako.Net.ResponseModel;
 using Mako.Util;
 
@@ -28,14 +29,12 @@ namespace Mako.Internal
 {
     internal class KeywordSearchAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
     {
-        private readonly IllustrationSortOption illustrationSortOption;
+        private readonly int searchCount;
         private readonly string keyword;
-        private readonly bool isPremium;
         private readonly uint start;
-        private readonly SearchMatchOption searchMatchOption;
 
-        public KeywordSearchAsyncEnumerable(MakoClient makoClient, string keyword, IllustrationSortOption illustrationSortOption, SearchMatchOption searchMatchOption, bool isPremium, uint start = 1)
-            : base(makoClient) => (this.searchMatchOption, this.isPremium, this.start, this.keyword, this.illustrationSortOption) = (searchMatchOption, isPremium, start.CoerceAt(1), keyword, illustrationSortOption);
+        public KeywordSearchAsyncEnumerable(MakoClient makoClient, string keyword, uint start, int searchCount)
+            : base(makoClient) => (this.start, this.keyword, this.searchCount) = (start, keyword, searchCount);
 
         public override Action<IList<Illustration>, Illustration> InsertPolicy()
         {
@@ -43,49 +42,83 @@ namespace Mako.Internal
             {
                 i.Let(_ =>
                 {
-                    if (isPremium)
-                    {
+                    if (MakoClient.ContextualBoundedSession.IsPremium)
                         list.Add(i);
-                    }
                     else
-                    {
-                        list.AddSorted(i, MakoClient.GetService<IComparer<Illustration>>(illustrationSortOption.GetEnumMetadataContent() as Type));
-                    }
+                        list.AddSorted(i, MakoClient.GetService<IComparer<Illustration>>(MakoClient.ContextualBoundedSession.IllustrationSortOption.GetEnumMetadataContent() as Type));
                 });
             };
         }
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            throw new System.NotImplementedException();
+            return new KeywordSearchAsyncEnumerator(this, start, searchCount, keyword, MakoClient);
         }
 
-        private class KeywordSearchAsyncEnumerator : AbstractPixivAsyncEnumerator<QueryWorksResponse, Illustration>
+        public override bool Validate(Illustration item, IList<Illustration> collection)
         {
-            private readonly int current;
-            private readonly bool isPremium;
+            return item.DistinctTagCorrespondenceValidation(collection, MakoClient.ContextualBoundedSession);
+        }
+
+        private class KeywordSearchAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, QueryWorksResponse>
+        {
+            private readonly int searchCount;
+            private readonly MakoClient makoClient;
+            private readonly uint current;
             private readonly string keyword;
-            private readonly SearchMatchOption matchOption;
+            private QueryWorksResponse response;
+            private int currentIllustIndex;
 
-            public KeywordSearchAsyncEnumerator(IPixivAsyncEnumerable<QueryWorksResponse> pixivEnumerable, int current, bool isPremium, string keyword, SearchMatchOption matchOption)
-                : base(pixivEnumerable) => (this.current, this.isPremium, this.keyword, this.matchOption) = (current, isPremium, keyword, matchOption);
+            public KeywordSearchAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, uint current, int searchCount, string keyword, MakoClient makoClient)
+                : base(pixivEnumerable) => (this.current, this.keyword, this.makoClient, this.searchCount) = (current, keyword, makoClient, searchCount);
 
-            public override QueryWorksResponse Current => CurrentEntityEnumerator.Current;
+            public override Illustration Current => CurrentEntityEnumerator.Current;
 
-            protected override IEnumerator<QueryWorksResponse> CurrentEntityEnumerator { get; set; }
-            public override ValueTask<bool> MoveNextAsync()
+            protected override IEnumerator<Illustration> CurrentEntityEnumerator { get; set; }
+
+            public override async ValueTask<bool> MoveNextAsync()
             {
-                throw new NotImplementedException();
+                if (IsCancellationRequested)
+                    return false;
+                if (searchCount != -1 && currentIllustIndex++ >= searchCount)
+                    return false;
+
+                if (response == null)
+                {
+                    var searchTarget = (string) makoClient.ContextualBoundedSession.KeywordSearchMatchOption.GetEnumMetadataContent();
+                    var sort = makoClient.ContextualBoundedSession.IsPremium ? "date_desc" : "popular_desc";
+                    UpdateEnumerator(await GetResponseOrThrow($"/v1/search/illust?search_target={searchTarget}&sort={sort}&word={keyword}&filter=for_android&offset={current}"));
+                    PixivEnumerable.RequestedPages++;
+                }
+
+                if (CurrentEntityEnumerator.MoveNext())
+                    return true;
+                // has next page or not, since the Pixiv API limited request illusts up to 5000
+                if (int.Parse(response.NextUrl[(response.NextUrl.LastIndexOf('=') + 1)..]) >= 5000)
+                    return false;
+
+                UpdateEnumerator(response);
+                PixivEnumerable.RequestedPages++;
+                return true;
             }
 
-            protected override void UpdateEnumerator(Illustration entity)
+            protected override void UpdateEnumerator(QueryWorksResponse entity)
             {
-                throw new NotImplementedException();
+                response = entity;
+                CurrentEntityEnumerator = response.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
-            protected override Task<Illustration> GetResponseOrThrow(string url)
+            protected override async Task<QueryWorksResponse> GetResponseOrThrow(string url)
             {
-                throw new NotImplementedException();
+                var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<QueryWorksResponse>(url);
+                return result.NullIfFalse(() => result.Illusts.IsNotNullOrEmpty()) ??
+                    throw Errors.EnumeratingNetworkException(
+                        nameof(KeywordSearchAsyncEnumerable),
+                        nameof(KeywordSearchAsyncEnumerator),
+                        url, PixivEnumerable.RequestedPages,
+                        $"The result collection is empty, this mostly indicates that the keyword {keyword} corresponds no results",
+                        makoClient.ContextualBoundedSession.Bypass
+                    );
             }
         }
     }

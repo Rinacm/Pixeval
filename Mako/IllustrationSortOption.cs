@@ -17,11 +17,17 @@
 #endregion
 
 using Mako.Internal;
+using Mako.Util;
 
-namespace Mako.Util
+namespace Mako
 {
     public enum IllustrationSortOption
     {
+        /// <summary>
+        /// Do not perform any sort operation
+        /// </summary>
+        None,
+
         /// <summary>
         /// Sort by bookmarks
         /// </summary>
