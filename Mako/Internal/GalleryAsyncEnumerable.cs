@@ -27,12 +27,12 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    internal class GalleryAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    internal class BookmarkAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
     {
         private readonly string uid;
         private readonly RestrictionPolicy restrictionPolicy;
 
-        public GalleryAsyncEnumerable(MakoClient makoClient, string uid, RestrictionPolicy restrictionPolicy)
+        public BookmarkAsyncEnumerable(MakoClient makoClient, string uid, RestrictionPolicy restrictionPolicy)
             : base(makoClient) => (this.uid, this.restrictionPolicy) = (uid, restrictionPolicy);
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
@@ -42,24 +42,24 @@ namespace Mako.Internal
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new GalleryAsyncEnumerator(this, restrictionPolicy, uid, MakoClient);
+            return new BookmarkAsyncEnumerator(this, restrictionPolicy, uid, MakoClient);
         }
 
-        private class GalleryAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, GalleryResponse>
+        private class BookmarkAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, BookmarkResponse>
         {
             private readonly MakoClient makoClient;
             private readonly RestrictionPolicy restrictionPolicy;
             private readonly string uid;
-            private GalleryResponse current;
+            private BookmarkResponse current;
 
             protected override IEnumerator<Illustration> CurrentEntityEnumerator { get; set; }
 
             public override Illustration Current => CurrentEntityEnumerator.Current;
 
-            public GalleryAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
+            public BookmarkAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
                 : base(pixivEnumerable) => (this.restrictionPolicy, this.uid, this.makoClient) = (restrictionPolicy, uid, makoClient);
 
-            protected override void UpdateEnumerator(GalleryResponse entity)
+            protected override void UpdateEnumerator(BookmarkResponse entity)
             {
                 current = entity;
                 CurrentEntityEnumerator = current.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
@@ -95,13 +95,13 @@ namespace Mako.Internal
                 };
             }
 
-            protected override async Task<GalleryResponse> GetResponseOrThrow(string url)
+            protected override async Task<BookmarkResponse> GetResponseOrThrow(string url)
             {
-                var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<GalleryResponse>(url);
+                var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<BookmarkResponse>(url);
                 return result.NullIfFalse(() => result.Illusts.IsNotNullOrEmpty()) ??
                     throw Errors.EnumeratingNetworkException(
-                        nameof(GalleryAsyncEnumerable),
-                        nameof(GalleryAsyncEnumerator),
+                        nameof(BookmarkAsyncEnumerable),
+                        nameof(BookmarkAsyncEnumerator),
                         url, PixivEnumerable.RequestedPages,
                         $"The result collection is empty, this mostly indicates that the user with specified Uid: {uid} does not exists.",
                         makoClient.ContextualBoundedSession.Bypass

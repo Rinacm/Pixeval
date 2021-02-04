@@ -37,7 +37,7 @@ namespace Mako.Internal
 
         public bool Cancelled { get; set; }
 
-        public virtual Action<IList<E>, E> InsertPolicy() => (es, e) => e.Let(es.Add);
+        public virtual void InsertTo(IList<E> list, E element) => element.Let(list.Add);
 
         public abstract IAsyncEnumerator<E> GetAsyncEnumerator(CancellationToken cancellationToken = default);
 

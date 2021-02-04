@@ -18,12 +18,14 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Mako.Model;
 using Mako.Util;
 
 // ReSharper disable ParameterTypeCanBeEnumerable.Global
 namespace Mako
 {
+    [PublicAPI]
     public static class MakoExtensions
     {
         public static bool DistinctTagCorrespondenceValidation(this Illustration item, IList<Illustration> collection, Session session)

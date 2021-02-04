@@ -112,17 +112,6 @@ namespace Mako
         public ISet<string> IncludeTags { get; } = new HashSet<string>();
 
         /// <summary>
-        /// Indicates how to match the keyword with illusts in the database, default value
-        /// is <see cref="SearchMatchOption.PartialMatchForTags"/>
-        /// </summary>
-        public SearchMatchOption KeywordSearchMatchOption { get; set; }
-
-        /// <summary>
-        /// Indicates how to sort the illusts, default value is <see cref="Mako.IllustrationSortOption.None"/>
-        /// </summary>
-        public IllustrationSortOption IllustrationSortOption { get; set; }
-
-        /// <summary>
         /// Any illust with less bookmarks will be filtered out
         /// </summary>
         public int MinBookmark { get; set; }

@@ -29,30 +29,35 @@ namespace Mako.Internal
 {
     internal class KeywordSearchAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
     {
+        private readonly SearchMatchOption searchMatchOption;
+        private readonly IllustrationSortOption illustrationSortOption;
         private readonly int searchCount;
         private readonly string keyword;
         private readonly uint start;
 
-        public KeywordSearchAsyncEnumerable(MakoClient makoClient, string keyword, uint start, int searchCount)
-            : base(makoClient) => (this.start, this.keyword, this.searchCount) = (start, keyword, searchCount);
+        public KeywordSearchAsyncEnumerable(
+            MakoClient makoClient,
+            string keyword,
+            uint start,
+            int searchCount,
+            SearchMatchOption searchMatchOption,
+            IllustrationSortOption illustrationSortOption
+        ) : base(makoClient) => (this.start, this.keyword, this.searchCount, this.searchMatchOption, this.illustrationSortOption) = (start, keyword, searchCount, searchMatchOption, illustrationSortOption);
 
-        public override Action<IList<Illustration>, Illustration> InsertPolicy()
+        public override void InsertTo(IList<Illustration> list, Illustration illustration)
         {
-            return (list, i) =>
+            illustration.Let(_ =>
             {
-                i.Let(_ =>
-                {
-                    if (MakoClient.ContextualBoundedSession.IsPremium)
-                        list.Add(i);
-                    else
-                        list.AddSorted(i, MakoClient.GetService<IComparer<Illustration>>(MakoClient.ContextualBoundedSession.IllustrationSortOption.GetEnumMetadataContent() as Type));
-                });
-            };
+                if (MakoClient.ContextualBoundedSession.IsPremium)
+                    list.Add(illustration);
+                else
+                    list.AddSorted(illustration, MakoClient.GetService<IComparer<Illustration>>(illustrationSortOption.GetEnumMetadataContent() as Type));
+            });
         }
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new KeywordSearchAsyncEnumerator(this, start, searchCount, keyword, MakoClient);
+            return new KeywordSearchAsyncEnumerator(this, start, searchCount, keyword, searchMatchOption, MakoClient);
         }
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
@@ -62,6 +67,7 @@ namespace Mako.Internal
 
         private class KeywordSearchAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, QueryWorksResponse>
         {
+            private readonly SearchMatchOption searchMatchOption;
             private readonly int searchCount;
             private readonly MakoClient makoClient;
             private readonly uint current;
@@ -69,8 +75,14 @@ namespace Mako.Internal
             private QueryWorksResponse response;
             private int currentIllustIndex;
 
-            public KeywordSearchAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, uint current, int searchCount, string keyword, MakoClient makoClient)
-                : base(pixivEnumerable) => (this.current, this.keyword, this.makoClient, this.searchCount) = (current, keyword, makoClient, searchCount);
+            public KeywordSearchAsyncEnumerator(
+                IPixivAsyncEnumerable<Illustration> pixivEnumerable,
+                uint current,
+                int searchCount,
+                string keyword,
+                SearchMatchOption searchMatchOption,
+                MakoClient makoClient
+            ) : base(pixivEnumerable) => (this.current, this.keyword, this.makoClient, this.searchCount, this.searchMatchOption) = (current, keyword, makoClient, searchCount, searchMatchOption);
 
             public override Illustration Current => CurrentEntityEnumerator.Current;
 
@@ -85,7 +97,7 @@ namespace Mako.Internal
 
                 if (response == null)
                 {
-                    var searchTarget = (string) makoClient.ContextualBoundedSession.KeywordSearchMatchOption.GetEnumMetadataContent();
+                    var searchTarget = (string) searchMatchOption.GetEnumMetadataContent();
                     var sort = makoClient.ContextualBoundedSession.IsPremium ? "date_desc" : "popular_desc";
                     UpdateEnumerator(await GetResponseOrThrow($"/v1/search/illust?search_target={searchTarget}&sort={sort}&word={keyword}&filter=for_android&offset={current}"));
                     PixivEnumerable.RequestedPages++;

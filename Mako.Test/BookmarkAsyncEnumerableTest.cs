@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Mako.Model;
 using NUnit.Framework;
@@ -25,38 +26,37 @@ using NUnit.Framework;
 namespace Mako.Test
 {
     [Order(4)]
-    public class AsyncEnumerableTest
+    public class BookmarkAsyncEnumerableTest
     {
         private static MakoClient MakoClient => Global.MakoClient;
 
         [Test]
-        public async Task GalleryTest()
+        public async Task PublicBookmarksTest()
         {
             var list = new List<Illustration>();
-            await foreach (var illustration in MakoClient.Gallery(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
+            await foreach (var illustration in MakoClient.Bookmarks(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
             {
                 if (illustration == null)
                     continue;
 
-                Console.WriteLine(illustration.Title);
                 list.Add(illustration);
             }
             Assert.IsNotEmpty(list);
+            Assert.IsTrue(list.All(i => i.IsLiked));
         }
 
         [Test]
-        public async Task KeywordSearchTest()
+        public async Task PrivateBookmarksTest()
         {
             var list = new List<Illustration>();
-            await foreach (var illustration in MakoClient.Search("東方project", searchCount: 1000))
+            await foreach (var illustration in MakoClient.Bookmarks(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Private))
             {
                 if (illustration == null)
                     continue;
 
-                Console.WriteLine(illustration.Title);
                 list.Add(illustration);
             }
-            Assert.IsNotEmpty(list);
+            Assert.IsTrue(list.All(i => i.IsLiked));
         }
     }
 }

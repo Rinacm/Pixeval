@@ -140,9 +140,7 @@ namespace Mako
             (this.account, this.password, Identifier, ClientCulture) = (account, password, Guid.NewGuid(), clientCulture ?? CultureInfo.InstalledUICulture);
             ContextualBoundedSession = new Session
             {
-                Bypass = bypass,
-                KeywordSearchMatchOption = SearchMatchOption.PartialMatchForTags,
-                IllustrationSortOption = IllustrationSortOption.None
+                Bypass = bypass
             };
         }
 
@@ -174,8 +172,8 @@ namespace Mako
         /// <summary>
         /// Attempts to login by using account and password within 10 seconds
         /// </summary>
-        /// <returns><see cref="Task"/> completed when logged in or timeout</returns>
-        /// <exception cref="AuthenticationTimeoutException">if it takes more than 10 seconds</exception>
+        /// <returns><see cref="Task"/>Completed when logged in or timeout</returns>
+        /// <exception cref="AuthenticationTimeoutException">If it takes more than 10 seconds</exception>
         public async Task Login()
         {
             const string clientHash = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c";
@@ -196,8 +194,8 @@ namespace Mako
         /// <summary>
         /// Attempts to refresh the session by using refresh token within 10 seconds
         /// </summary>
-        /// <returns><see cref="Task"/> completed when refreshed or timeout</returns>
-        /// <exception cref="AuthenticationTimeoutException">if it takes more than 10 seconds</exception>
+        /// <returns><see cref="Task"/>Completed when refreshed or timeout</returns>
+        /// <exception cref="AuthenticationTimeoutException">If it takes more than 10 seconds</exception>
         public async Task Refresh()
         {
             EnsureUserLoggedIn();
@@ -213,46 +211,53 @@ namespace Mako
         }
 
         /// <summary>
-        /// Get a user's collection by using <see cref="RestrictionPolicy"/> to indicate the publicity,
-        /// be aware that <see cref="RestrictionPolicy"/> is only useful when <paramref name="uid"/>
-        /// is exactly representing yourself, otherwise you will get the same result regardless the
-        /// value of <see cref="RestrictionPolicy"/>
+        /// Get a user's collection
         /// </summary>
-        /// <param name="uid"></param>
-        /// <param name="restrictionPolicy"></param>
+        /// <param name="uid">User's uid</param>
+        /// <param name="restrictionPolicy">
+        /// Indicates the publicity, be aware this parameter is only useful when <paramref name="uid"/>
+        /// is exactly referring to yourself, otherwise the result will be the same regardless of its value
+        /// </param>
         /// <returns></returns>
-        public IPixivAsyncEnumerable<Illustration> Gallery(string uid, RestrictionPolicy restrictionPolicy)
+        public IPixivAsyncEnumerable<Illustration> Bookmarks(string uid, RestrictionPolicy restrictionPolicy)
         {
             EnsureUserLoggedIn();
-            return new GalleryAsyncEnumerable(this, uid, restrictionPolicy).Also(RegisterOperation);
+            return new BookmarkAsyncEnumerable(this, uid, restrictionPolicy).Also(RegisterOperation);
         }
 
         /// <summary>
-        /// Search illustrations according to <see cref="keyword"/>
+        /// Searches illustrations according to a specify <see cref="keyword"/>
         /// </summary>
         /// <param name="keyword">keyword</param>
         /// <param name="start">
-        /// set the illust index you want to start at, it must between 1(inclusive) to 5000(exclusive), default value is 1
+        /// Set the index you want to start at, which must in between 1(inclusive) and 5000(exclusive), default value is 1
         /// </param>
         /// <param name="searchCount">
-        /// how many illusts will be searched, -1 to indicates you want to search as many as possible, extras will be discarded
-        /// if it's more than the numbers of all possible illusts(around 5000).
+        /// How many illusts will be searched, -1 to indicates you want to search as many as possible, otherwise it's
+        /// value is semantically equals to <code>min(value, numbers of all possible illusts)</code>
+        /// </param>
+        /// <param name="searchMatchOption">Set the match method between keyword and illustration</param>
+        /// <param name="illustrationSortOption">
+        /// Tell the <see cref="AbstractPixivAsyncEnumerable{E}.InsertPolicy"/> to manage the illustration in proper order.
+        /// This option only affects when you invoking the result <see cref="Action{T}"/> of <see cref="AbstractPixivAsyncEnumerable{E}.InsertPolicy"/>
+        /// on a <see cref="Illustration"/>.
+        /// The returned <see cref="IPixivAsyncEnumerable{E}"/>'s order will stay as <see cref="IllustrationSortOption.None"/> is set
         /// </param>
         /// <exception cref="ArgumentOutOfRangeException">if <see cref="start"/> is not in range [1, 5000)</exception>
         /// <returns></returns>
-        public IPixivAsyncEnumerable<Illustration> Search(string keyword, uint start = 1, int searchCount = -1)
+        public IPixivAsyncEnumerable<Illustration> Search(string keyword, uint start = 1, int searchCount = -1, SearchMatchOption searchMatchOption = SearchMatchOption.TitleAndCaption, IllustrationSortOption illustrationSortOption = IllustrationSortOption.None)
         {
             if (start < 1 || start >= 5000)
                 throw Errors.ArgumentOutOfRange($"desire range: [1, 5000), actual value: start({start})");
 
             EnsureUserLoggedIn();
-            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount);
+            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption);
         }
 
         private void RegisterOperation(ICancellable cancellable) => registeredOperations.Add(cancellable);
 
         /// <summary>
-        /// Ensure that user has already call Login() before doing some context-aware action
+        /// Ensure that user has already called <see cref="Login"/> before doing some login-required action
         /// </summary>
         /// <exception cref="UserNotLoggedInException">if user is not logged in yet</exception>
         private void EnsureUserLoggedIn()
@@ -264,7 +269,7 @@ namespace Mako
         }
 
         /// <summary>
-        /// Semantically ambiguous, for internal use only
+        /// Selects a proper exception to thrown, this method is semantically ambiguous, for internal use only
         /// </summary>
         /// <param name="e"></param>
         /// <returns></returns>

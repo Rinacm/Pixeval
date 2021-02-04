@@ -48,7 +48,7 @@ namespace Mako.Test
         public async Task AutoRefresh()
         {
             Global.MakoClient.ContextualBoundedSession.Invalidate();
-            await Global.MakoClient.Gallery(Global.MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public).GetAsyncEnumerator().MoveNextAsync();
+            await Global.MakoClient.Bookmarks(Global.MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public).GetAsyncEnumerator().MoveNextAsync();
         }
 #endif
     }

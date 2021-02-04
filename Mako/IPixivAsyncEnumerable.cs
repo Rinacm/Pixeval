@@ -28,10 +28,10 @@ namespace Mako
         int RequestedPages { get; set; }
 
         /// <summary>
-        /// Indicates how does <see cref="IPixivAsyncEnumerable{E}"/> insert an item to a <see cref="IList{E}"/>
+        /// Insert an element to a <see cref="IList{E}"/>
         /// </summary>
         /// <returns></returns>
-        Action<IList<E>, E> InsertPolicy();
+        void InsertTo(IList<E> list, E element);
 
         /// <summary>
         /// Check if <paramref name="item"/> is valid to be inserted into <see cref="IList{T}"/>
