@@ -48,7 +48,7 @@ namespace Mako.Util
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool NotNullOrEmpty(this string str)
+        public static bool IsNotNullOrEmpty(this string str)
         {
             return !string.IsNullOrEmpty(str);
         }

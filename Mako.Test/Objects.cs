@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Mako.Model;
 
 namespace Mako.Test
 {
@@ -37,6 +38,18 @@ namespace Mako.Test
             }
 
             return true;
+        }
+
+        public static bool IsDistinct<T>(this IEnumerable<T> enumerable, Func<T, object> keySelector)
+        {
+            var delegatedComparer = new DelegatedEqualityComparer<T>(keySelector);
+            var ts = enumerable as T[] ?? enumerable.ToArray();
+            return ts.All(e1 => ts.All(e2 => ReferenceEquals(e1, e2) || !delegatedComparer.Equals(e2, e1)));
+        }
+
+        public static void Print(this Illustration illustration)
+        {
+            Console.WriteLine($"ID: {illustration.Id} Title: {illustration.Title} UserName: {illustration.ArtistName} Bookmarks: {illustration.Bookmarks}");
         }
     }
 }

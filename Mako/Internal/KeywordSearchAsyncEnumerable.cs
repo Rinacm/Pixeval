@@ -65,15 +65,15 @@ namespace Mako.Internal
             return item.DistinctTagCorrespondenceValidation(collection, MakoClient.ContextualBoundedSession);
         }
 
-        private class KeywordSearchAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, QueryWorksResponse>
+        private class KeywordSearchAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, QueryWorksResponse>
         {
             private readonly SearchMatchOption searchMatchOption;
             private readonly int searchCount;
-            private readonly MakoClient makoClient;
             private readonly uint current;
             private readonly string keyword;
-            private QueryWorksResponse response;
             private int currentIllustIndex;
+
+            public override Illustration Current => CurrentEntityEnumerator.Current;
 
             public KeywordSearchAsyncEnumerator(
                 IPixivAsyncEnumerable<Illustration> pixivEnumerable,
@@ -82,55 +82,36 @@ namespace Mako.Internal
                 string keyword,
                 SearchMatchOption searchMatchOption,
                 MakoClient makoClient
-            ) : base(pixivEnumerable) => (this.current, this.keyword, this.makoClient, this.searchCount, this.searchMatchOption) = (current, keyword, makoClient, searchCount, searchMatchOption);
+            ) : base(pixivEnumerable, makoClient) => (this.current, this.keyword, this.searchCount, this.searchMatchOption) = (current, keyword, searchCount, searchMatchOption);
 
-            public override Illustration Current => CurrentEntityEnumerator.Current;
+            protected override string NextUrl() => Entity.NextUrl;
 
-            protected override IEnumerator<Illustration> CurrentEntityEnumerator { get; set; }
+            protected override bool HasNext() => searchCount == -1 || currentIllustIndex++ < searchCount;
 
-            public override async ValueTask<bool> MoveNextAsync()
+            protected override string InitialUrl()
             {
-                if (IsCancellationRequested)
-                    return false;
-                if (searchCount != -1 && currentIllustIndex++ >= searchCount)
-                    return false;
-
-                if (response == null)
-                {
-                    var searchTarget = (string) searchMatchOption.GetEnumMetadataContent();
-                    var sort = makoClient.ContextualBoundedSession.IsPremium ? "date_desc" : "popular_desc";
-                    UpdateEnumerator(await GetResponseOrThrow($"/v1/search/illust?search_target={searchTarget}&sort={sort}&word={keyword}&filter=for_android&offset={current}"));
-                    PixivEnumerable.RequestedPages++;
-                }
-
-                if (CurrentEntityEnumerator.MoveNext())
-                    return true;
-                // has next page or not, since the Pixiv API limited request illusts up to 5000
-                if (int.Parse(response.NextUrl[(response.NextUrl.LastIndexOf('=') + 1)..]) >= 5000)
-                    return false;
-
-                UpdateEnumerator(response);
-                PixivEnumerable.RequestedPages++;
-                return true;
+                var searchTarget = (string) searchMatchOption.GetEnumMetadataContent();
+                var sort = MakoClient.ContextualBoundedSession.IsPremium ? "date_desc" : "popular_desc";
+                return $"/v1/search/illust?search_target={searchTarget}&sort={sort}&word={keyword}&filter=for_android&offset={current}";
             }
 
-            protected override void UpdateEnumerator(QueryWorksResponse entity)
+            protected override bool HasNextPage()
             {
-                response = entity;
-                CurrentEntityEnumerator = response.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
+                var next = NextUrl();
+                return int.Parse(next[(next.LastIndexOf('=') + 1)..]) < 5000;
             }
 
-            protected override async Task<QueryWorksResponse> GetResponseOrThrow(string url)
+            protected override IEnumerator<Illustration> GetNewEnumerator()
             {
-                var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<QueryWorksResponse>(url);
-                return result.NullIfFalse(() => result.Illusts.IsNotNullOrEmpty()) ??
-                    throw Errors.EnumeratingNetworkException(
-                        nameof(KeywordSearchAsyncEnumerable),
-                        nameof(KeywordSearchAsyncEnumerator),
-                        url, PixivEnumerable.RequestedPages,
-                        $"The result collection is empty, this mostly indicates that the keyword {keyword} corresponds no results",
-                        makoClient.ContextualBoundedSession.Bypass
-                    );
+                return Entity.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
+            }
+
+            protected override async Task<Result<(Type, QueryWorksResponse)>> GetResponse(string url)
+            {
+                var result = await MakoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<QueryWorksResponse>(url);
+                return result.Illusts.IsNotNullOrEmpty()
+                    ? Result<(Type, QueryWorksResponse)>.Success((GetType(), result))
+                    : Result<(Type, QueryWorksResponse)>.Failure;
             }
         }
     }

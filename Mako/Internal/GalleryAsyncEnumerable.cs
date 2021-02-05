@@ -45,67 +45,36 @@ namespace Mako.Internal
             return new BookmarkAsyncEnumerator(this, restrictionPolicy, uid, MakoClient);
         }
 
-        private class BookmarkAsyncEnumerator : AbstractPixivAsyncEnumerator<Illustration, BookmarkResponse>
+        private class BookmarkAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, BookmarkResponse>
         {
-            private readonly MakoClient makoClient;
             private readonly RestrictionPolicy restrictionPolicy;
             private readonly string uid;
-            private BookmarkResponse current;
-
-            protected override IEnumerator<Illustration> CurrentEntityEnumerator { get; set; }
 
             public override Illustration Current => CurrentEntityEnumerator.Current;
 
             public BookmarkAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
-                : base(pixivEnumerable) => (this.restrictionPolicy, this.uid, this.makoClient) = (restrictionPolicy, uid, makoClient);
+                : base(pixivEnumerable, makoClient) => (this.restrictionPolicy, this.uid) = (restrictionPolicy, uid);
 
-            protected override void UpdateEnumerator(BookmarkResponse entity)
+            protected override IEnumerator<Illustration> GetNewEnumerator()
             {
-                current = entity;
-                CurrentEntityEnumerator = current.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
+                return Entity.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
-            public override async ValueTask<bool> MoveNextAsync()
+            protected override string NextUrl() => Entity.NextUrl;
+
+            protected override string InitialUrl() => restrictionPolicy switch
             {
-                if (IsCancellationRequested)
-                    return false; // fast-path
-                if (current == null)
-                {
-                    UpdateEnumerator(await GetResponseOrThrow(ConstructUrl()));
-                    PixivEnumerable.RequestedPages++;
-                }
+                RestrictionPolicy.Public  => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=public&filter=for_ios",
+                RestrictionPolicy.Private => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=private&filter=for_ios",
+                _                         => throw new ArgumentOutOfRangeException()
+            };
 
-                if (CurrentEntityEnumerator.MoveNext())
-                    return true;
-                if (current.NextUrl.IsNullOrEmpty())
-                    return false;
-
-                UpdateEnumerator(await GetResponseOrThrow(current.NextUrl));
-                PixivEnumerable.RequestedPages++;
-                return true;
-            }
-
-            private string ConstructUrl()
+            protected override async Task<Result<(Type, BookmarkResponse)>> GetResponse(string url)
             {
-                return restrictionPolicy switch
-                {
-                    RestrictionPolicy.Public  => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=public&filter=for_ios",
-                    RestrictionPolicy.Private => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=private&filter=for_ios",
-                    _                         => throw new ArgumentOutOfRangeException()
-                };
-            }
-
-            protected override async Task<BookmarkResponse> GetResponseOrThrow(string url)
-            {
-                var result = await makoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<BookmarkResponse>(url);
-                return result.NullIfFalse(() => result.Illusts.IsNotNullOrEmpty()) ??
-                    throw Errors.EnumeratingNetworkException(
-                        nameof(BookmarkAsyncEnumerable),
-                        nameof(BookmarkAsyncEnumerator),
-                        url, PixivEnumerable.RequestedPages,
-                        $"The result collection is empty, this mostly indicates that the user with specified Uid: {uid} does not exists.",
-                        makoClient.ContextualBoundedSession.Bypass
-                    );
+                var result = await MakoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<BookmarkResponse>(url);
+                return result.Illusts.IsNotNullOrEmpty()
+                    ? Result<(Type, BookmarkResponse)>.Success((GetType(), result))
+                    : Result<(Type, BookmarkResponse)>.Failure;
             }
         }
     }

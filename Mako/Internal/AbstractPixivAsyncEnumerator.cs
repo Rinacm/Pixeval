@@ -16,31 +16,105 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Mako.Util;
 
+// ReSharper disable InvalidXmlDocComment
 namespace Mako.Internal
 {
     /// <summary>
-    /// Specified enumerator for Pixiv resources, <strong>IT IS TRANSIENT, CREATE A NEW INSTANCE ON EACH TIME YOU WANT TO USE IT</strong>
+    /// <para>The Pixiv app clients API mostly use the following JSON scheme:</para>
+    /// <code>
+    /// {
+    ///     &emsp;"contents": [&lt;array-of-single-contents&gt;],
+    ///     &emsp;"nextUrl": "&lt;url-to-proceed-to-next-page&gt;"
+    /// }
+    /// </code>
+    /// Provide an subclass of <see cref="IAsyncEnumerator{T}"/> to explorer the <c>contents</c>
+    /// part of a particular Pixiv API, this class serves 4 different purposes:
+    /// <list type="number">
+    ///     <item>
+    ///         <term>Fetch: </term>
+    ///         <description>
+    ///         Get the JSON content from an API endpoint and deserialized into raw entities.
+    ///         See <see cref="Mako.Model.IllustrationEssential"/>
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <term>Translate: </term>
+    ///         <description>
+    ///         Translate the raw entities into a list of simplified, clarified model such as
+    ///         <see cref="Mako.Model.Illustration"/> to make it easier to manipulate
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <term>Emit: </term>
+    ///         <description>
+    ///         Emit the parsed entities as <see cref="IAsyncEnumerator{T}"/>'s elements,
+    ///         which gives it ability to be directly used in an async foreach loop
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <term>Iterate: </term>
+    ///         <description>
+    ///         Since the API might contains more than 1 pages, this class should be able
+    ///         to automatically request new JSON contents and perform the above steps until
+    ///         the API cannot provide more results
+    ///         </description>
+    ///     </item>
+    /// </list>
+    /// <para>
+    ///     Due to the undertaken functionality of the translation layer of this class, it involves two
+    ///     generic parameters, first of them(<typeparamref name="E"/>) is referring to the aforementioned
+    ///     simplified model, and the later one(<typeparamref name="C"/>) represents the type of the raw
+    ///     entities to which deserialized JSON corresponds
+    /// </para>
+    /// <example>
+    ///     <code>
+    ///     public static IPixivAsyncEnumerable&lt;Entity&gt; GetAsyncPixivEnumerable() => ...
+    ///
+    ///     var enumerator = GetAsyncPixivEnumerable().GetAsyncEnumerator();
+    ///     while(enumerator.MoveNext())
+    ///     {
+    ///         var entity = enumerator.Current;
+    ///         // do something with entity
+    ///     }
+    ///     </code>
+    /// </example>
+    /// <para>
+    /// <strong>NOTICE</strong>! The emitted value from this <see cref="AbstractPixivAsyncEnumerator{E,C}"/>
+    /// is not guaranteed to be nonnull, check the value carefully before using it
+    /// </para>
     /// </summary>
+    /// <see cref="RecursivelyIterablePixivAsyncEnumerator{E,C}"/>
     /// <typeparam name="E">Model type</typeparam>
-    /// <typeparam name="C">Entity type</typeparam>
+    /// <typeparam name="C">Raw entity type</typeparam>
     internal abstract class AbstractPixivAsyncEnumerator<E, C> : IAsyncEnumerator<E>
     {
+        /// <summary>
+        /// The <see cref="IPixivAsyncEnumerable{E}"/> which owns this <see cref="AbstractPixivAsyncEnumerator{E,C}"/>
+        /// </summary>
         protected IPixivAsyncEnumerable<E> PixivEnumerable;
 
-        protected abstract IEnumerator<E> CurrentEntityEnumerator { get; set; }
+        /// <summary>
+        /// The translated models of current page
+        /// </summary>
+        protected IEnumerator<E> CurrentEntityEnumerator { get; set; }
 
-        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable)
-        {
-            PixivEnumerable = pixivEnumerable;
-        }
-
+        /// <summary>
+        /// Get cancellation requested or not
+        /// </summary>
         protected bool IsCancellationRequested => PixivEnumerable.Cancelled;
 
         public virtual ValueTask DisposeAsync() => DisposeInternal();
+
+        protected MakoClient MakoClient { get; }
+
+        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoClient makoClient)
+            => (PixivEnumerable, MakoClient) = (pixivEnumerable, makoClient);
 
         private ValueTask DisposeInternal()
         {
@@ -54,9 +128,18 @@ namespace Mako.Internal
         [CanBeNull]
         public abstract E Current { get; }
 
-        protected abstract void UpdateEnumerator(C entity);
+        /// <summary>
+        /// Update the value of <see cref="IPixivAsyncEnumerable{E}.RequestedPages"/> and
+        /// <see cref="CurrentEntityEnumerator"/> and other related fields after requested
+        /// a new page
+        /// </summary>
+        /// <param name="entity">The raw entity deserialized from JSON</param>
+        protected abstract void Update(C entity);
 
-        [ItemCanBeNull]
-        protected abstract Task<C> GetResponseOrThrow(string url);
+        /// <summary>
+        /// Send an request to get JSON content(of a new page)
+        /// </summary>
+        /// <param name="url">Url</param>
+        protected abstract Task<Result<(Type, C)>> GetResponse(string url);
     }
 }

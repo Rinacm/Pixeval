@@ -20,7 +20,7 @@ using System;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 
-namespace Mako.Util
+namespace Mako
 {
     public enum LoginFailedKind
     {
@@ -38,7 +38,7 @@ namespace Mako.Util
         public string Account { get; }
 
         public LoginFailedException(string certificate, LoginFailedKind reason, string account = null)
-            : this($"Login failed due to error certificate: {certificate} (login by {reason})")
+            : this($"Login failed due to certificate error: {certificate} (login by {reason})")
         {
             (Reason, Certificate, Account) = (reason, certificate, account);
         }

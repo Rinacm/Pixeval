@@ -38,7 +38,7 @@ namespace Mako.Net
             var host = message.RequestUri.IdnHost;
             if (host == conf.ImageHost)
             {
-                if (conf.MirrorHost.NotNullOrEmpty())
+                if (conf.MirrorHost.IsNotNullOrEmpty())
                 {
                     var oldUri = message.RequestUri.ToString();
                     message.RequestUri = new Uri(oldUri.Replace("https://i.pximg.net", conf.MirrorHost));

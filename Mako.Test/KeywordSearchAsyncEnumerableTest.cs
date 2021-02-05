@@ -16,8 +16,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Mako.Model;
 using NUnit.Framework;
@@ -29,7 +29,7 @@ namespace Mako.Test
     {
         private static MakoClient MakoClient => Global.MakoClient;
 
-        [Test]
+        [Test, Parallelizable]
         public async Task KeywordSearchTest()
         {
             var list = new List<Illustration>();
@@ -38,12 +38,15 @@ namespace Mako.Test
                 if (illustration == null)
                     continue;
 
+                illustration.Print();
                 list.Add(illustration);
             }
+
+            Console.WriteLine($"Size: {list.Count}");
             Assert.IsNotEmpty(list);
         }
 
-        [Test]
+        [Test, Parallelizable]
         public async Task ResultListBookmarksOrderTest()
         {
             var list = new List<Illustration>();
@@ -53,13 +56,16 @@ namespace Mako.Test
                 if (illustration == null)
                     continue;
 
+                illustration.Print();
                 enumerable.InsertTo(list, illustration);
             }
+
+            Console.WriteLine($"Size: {list.Count}");
             Assert.IsNotEmpty(list);
             Assert.IsTrue(list.IsSorted(i => i.Bookmarks, true));
         }
 
-        [Test]
+        [Test, Parallelizable]
         public async Task ResultListPublishDateOrderTest()
         {
             var list = new List<Illustration>();
@@ -69,8 +75,11 @@ namespace Mako.Test
                 if (illustration == null)
                     continue;
 
+                illustration.Print();
                 enumerable.InsertTo(list, illustration);
             }
+
+            Console.WriteLine($"Size: {list.Count}");
             Assert.IsNotEmpty(list);
             Assert.IsTrue(list.IsSorted(i => i.PublishDate, true));
         }

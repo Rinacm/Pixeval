@@ -22,7 +22,10 @@ using Refit;
 
 namespace Mako.Util
 {
-    public static class Errors
+    /// <summary>
+    /// A helper factory class to create <see cref="Exception"/> objects
+    /// </summary>
+    internal static class Errors
     {
         public static LoginFailedException LoginFailed(string certificate, LoginFailedKind kind, string account = null)
         {
@@ -34,9 +37,9 @@ namespace Mako.Util
             return new MakoNetworkException(message, bypass, url);
         }
 
-        public static MakoNetworkException EnumeratingNetworkException(string enumerableName, string enumeratorName, string url, int pageRequested, string extraMessage, bool bypass)
+        public static MakoNetworkException EnumeratingNetworkException(string enumeratorName, string url, int pageRequested, string extraMessage, bool bypass)
         {
-            return new MakoNetworkException($"Current Enumerable Instance: {enumerableName}. Current Enumerator Instance: {enumeratorName}. Requesting Url: {url}. Current Page Requested: {pageRequested}. {extraMessage} {bypass.IfTrue(() => "(bypassing)")}", bypass, url);
+            return new MakoNetworkException($"Current Enumerator Instance: {enumeratorName}. Requesting Url: {url}. Current Page Requested: {pageRequested}. {extraMessage} {bypass.IfTrue(() => "(bypassing)")}", bypass, url);
         }
 
         public static AuthenticationTimeoutException AuthenticationTimeout(string account, string certificate, bool bypass, bool refreshing)

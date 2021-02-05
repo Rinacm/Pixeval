@@ -37,12 +37,12 @@ namespace Mako
         {
             return illustration.Check(() =>
             {
-                if (excludeTags.IsNotNullOrEmpty() && excludeTags.Any(x => x.IsNotNullOrEmpty() && illustration.Tags.Any(t => t.Name.EqualsIgnoreCase(x))))
+                if (excludeTags.IsNotNullOrEmpty() && excludeTags.Any(x => Enumerates.IsNotNullOrEmpty(x) && illustration.Tags.Any(t => t.Name.EqualsIgnoreCase(x))))
                 {
                     return false;
                 }
 
-                if (includeTags.IsNotNullOrEmpty() && includeTags.Any(x => x.IsNotNullOrEmpty() && illustration.Tags.All(i => !i.Name.EqualsIgnoreCase(x))))
+                if (includeTags.IsNotNullOrEmpty() && includeTags.Any(x => Enumerates.IsNotNullOrEmpty(x) && illustration.Tags.All(i => !i.Name.EqualsIgnoreCase(x))))
                 {
                     return false;
                 }

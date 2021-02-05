@@ -226,7 +226,7 @@ namespace Mako
         }
 
         /// <summary>
-        /// Searches illustrations according to a specify <see cref="keyword"/>
+        /// Retrieves illustrations according to <see cref="keyword"/>
         /// </summary>
         /// <param name="keyword">keyword</param>
         /// <param name="start">
@@ -238,20 +238,37 @@ namespace Mako
         /// </param>
         /// <param name="searchMatchOption">Set the match method between keyword and illustration</param>
         /// <param name="illustrationSortOption">
-        /// Tell the <see cref="AbstractPixivAsyncEnumerable{E}.InsertPolicy"/> to manage the illustration in proper order.
-        /// This option only affects when you invoking the result <see cref="Action{T}"/> of <see cref="AbstractPixivAsyncEnumerable{E}.InsertPolicy"/>
-        /// on a <see cref="Illustration"/>.
-        /// The returned <see cref="IPixivAsyncEnumerable{E}"/>'s order will stay as <see cref="IllustrationSortOption.None"/> is set
+        /// Tell the <see cref="AbstractPixivAsyncEnumerable{E}.InsertTo"/> to manage the illustration in a proper order.
+        /// This option only affects when invoking <see cref="AbstractPixivAsyncEnumerable{E}.InsertTo"/>, it does not change
+        /// the order of <see cref="IPixivAsyncEnumerable{E}"/>
         /// </param>
-        /// <exception cref="ArgumentOutOfRangeException">if <see cref="start"/> is not in range [1, 5000)</exception>
-        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException">If <see cref="start"/> is not in range [1, 5000)</exception>
+        /// <returns><see cref="IPixivAsyncEnumerable{E}"/></returns>
         public IPixivAsyncEnumerable<Illustration> Search(string keyword, uint start = 1, int searchCount = -1, SearchMatchOption searchMatchOption = SearchMatchOption.TitleAndCaption, IllustrationSortOption illustrationSortOption = IllustrationSortOption.None)
         {
             if (start < 1 || start >= 5000)
                 throw Errors.ArgumentOutOfRange($"desire range: [1, 5000), actual value: start({start})");
 
             EnsureUserLoggedIn();
-            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption);
+            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption).Also(RegisterOperation);
+        }
+
+        /// <summary>
+        /// Retrieves ranking illustrations according to <paramref name="rankOption"/> and <paramref name="date"/>
+        /// </summary>
+        /// <param name="rankOption">Ranking retrieve option</param>
+        /// <param name="date">
+        /// The date you want to retrieve, which must not greater than two days before today
+        /// </param>
+        /// <returns><see cref="IPixivAsyncEnumerable{E}"/></returns>
+        /// <exception cref="ArgumentOutOfRangeException">if the date overflows</exception>
+        public IPixivAsyncEnumerable<Illustration> Ranking(RankOption rankOption, DateTime date)
+        {
+            if (DateTime.Today - date.Date > TimeSpan.FromDays(2))
+                throw Errors.ArgumentOutOfRange($"The parameter {nameof(date)}({date.ToString(CultureInfo.CurrentCulture)})'s value must not greater than two days before today");
+
+            EnsureUserLoggedIn();
+            return new RankingAsyncEnumerable(rankOption, date, this).Also(RegisterOperation);
         }
 
         private void RegisterOperation(ICancellable cancellable) => registeredOperations.Add(cancellable);
@@ -259,7 +276,7 @@ namespace Mako
         /// <summary>
         /// Ensure that user has already called <see cref="Login"/> before doing some login-required action
         /// </summary>
-        /// <exception cref="UserNotLoggedInException">if user is not logged in yet</exception>
+        /// <exception cref="UserNotLoggedInException">If user is not logged in yet</exception>
         private void EnsureUserLoggedIn()
         {
             if (ContextualBoundedSession == null || ContextualBoundedSession.AccessToken.IsNullOrEmpty())

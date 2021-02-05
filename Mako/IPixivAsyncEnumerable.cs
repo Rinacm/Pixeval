@@ -16,7 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 
@@ -25,20 +24,31 @@ namespace Mako
     [PublicAPI]
     public interface IPixivAsyncEnumerable<E> : IAsyncEnumerable<E>, ICancellable
     {
+        /// <summary>
+        /// How many pages has been requested
+        /// </summary>
         int RequestedPages { get; set; }
 
         /// <summary>
-        /// Insert an element to a <see cref="IList{E}"/>
+        /// Insert an <paramref name="element"/> into <paramref name="list"/>.
+        /// <para>
+        /// when enumerating the contents, there may be such a requirement that
+        /// needs to insert an element into a list in a proper way(such as sort
+        /// the element in some order), this function will be helpful for those
+        /// kinds of scenarios
+        /// </para>
         /// </summary>
-        /// <returns></returns>
         void InsertTo(IList<E> list, E element);
 
         /// <summary>
-        /// Check if <paramref name="item"/> is valid to be inserted into <see cref="IList{T}"/>
+        /// Check if an <paramref cref="item"/> is valid to be inserted into <paramref cref="collection"/>
+        /// <para>
+        /// Use this function cooperatively with <see cref="InsertTo"/>
+        /// </para>
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="collection"></param>
-        /// <returns></returns>
+        /// <param name="item">The item to be inserted</param>
+        /// <param name="collection">The list</param>
+        /// <returns>The validity of the <paramref name="item"/></returns>
         bool Validate(E item, IList<E> collection);
     }
 }

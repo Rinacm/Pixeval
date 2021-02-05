@@ -30,7 +30,7 @@ namespace Mako.Test
     {
         private static MakoClient MakoClient => Global.MakoClient;
 
-        [Test]
+        [Test, Parallelizable]
         public async Task PublicBookmarksTest()
         {
             var list = new List<Illustration>();
@@ -39,13 +39,16 @@ namespace Mako.Test
                 if (illustration == null)
                     continue;
 
+                illustration.Print();
                 list.Add(illustration);
             }
+
+            Console.WriteLine($"Size: {list.Count}");
             Assert.IsNotEmpty(list);
             Assert.IsTrue(list.All(i => i.IsLiked));
         }
 
-        [Test]
+        [Test, Parallelizable]
         public async Task PrivateBookmarksTest()
         {
             var list = new List<Illustration>();
@@ -54,8 +57,11 @@ namespace Mako.Test
                 if (illustration == null)
                     continue;
 
+                illustration.Print();
                 list.Add(illustration);
             }
+
+            Console.WriteLine($"Size: {list.Count}");
             Assert.IsTrue(list.All(i => i.IsLiked));
         }
     }
