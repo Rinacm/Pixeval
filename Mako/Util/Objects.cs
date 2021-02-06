@@ -74,7 +74,10 @@ namespace Mako.Util
 
         public static string Hash<T>(this string str) where T : HashAlgorithm, new()
         {
-            static string Sum(string s1, string s2) => s1 + s2;
+            static string Sum(string s1, string s2)
+            {
+                return s1 + s2;
+            }
 
             using var hasher = new T();
             var bytes = hasher.ComputeHash(str.GetBytes());

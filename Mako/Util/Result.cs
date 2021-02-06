@@ -23,24 +23,35 @@ namespace Mako.Util
     [PublicAPI]
     public class Result<T>
     {
-        public Result(T value) => Value = value;
+        public Result(T value)
+        {
+            Value = value;
+        }
 
         public T Value { get; }
 
-        public static Result<T> Success(T value) => new Success<T>(value);
+        public static Result<T> Success(T value)
+        {
+            return new Success<T>(value);
+        }
 
         public static Result<T> Failure => new Failure<T>(default);
     }
 
+    [PublicAPI]
     public class Success<T> : Result<T>
     {
         public Success(T value) : base(value)
         {
         }
 
-        public static implicit operator T(Success<T> success) => success.Value;
+        public static implicit operator T(Success<T> success)
+        {
+            return success.Value;
+        }
     }
 
+    [PublicAPI]
     public class Failure<T> : Result<T>
     {
         public Failure(T value) : base(value)

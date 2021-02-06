@@ -16,10 +16,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Mako.Net;
 using Mako.Util;
 
 // ReSharper disable InvalidXmlDocComment
@@ -105,16 +105,29 @@ namespace Mako.Internal
         protected IEnumerator<E> CurrentEntityEnumerator { get; set; }
 
         /// <summary>
+        /// Indicates which API is currently used
+        /// </summary>
+        private MakoAPIKind ApiKind { get; }
+
+        /// <summary>
         /// Get cancellation requested or not
         /// </summary>
         protected bool IsCancellationRequested => PixivEnumerable.Cancelled;
 
-        public virtual ValueTask DisposeAsync() => DisposeInternal();
+        public virtual ValueTask DisposeAsync()
+        {
+            return DisposeInternal();
+        }
 
         protected MakoClient MakoClient { get; }
 
-        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoClient makoClient)
-            => (PixivEnumerable, MakoClient) = (pixivEnumerable, makoClient);
+        [CanBeNull]
+        public virtual E Current => CurrentEntityEnumerator.Current;
+
+        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
+        {
+            (PixivEnumerable, ApiKind, MakoClient) = (pixivEnumerable, apiKind, makoClient);
+        }
 
         private ValueTask DisposeInternal()
         {
@@ -125,9 +138,6 @@ namespace Mako.Internal
 
         public abstract ValueTask<bool> MoveNextAsync();
 
-        [CanBeNull]
-        public abstract E Current { get; }
-
         /// <summary>
         /// Update the value of <see cref="IPixivAsyncEnumerable{E}.RequestedPages"/> and
         /// <see cref="CurrentEntityEnumerator"/> and other related fields after requested
@@ -137,9 +147,22 @@ namespace Mako.Internal
         protected abstract void Update(C entity);
 
         /// <summary>
+        /// Check if response is invalid/null/empty
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        protected abstract bool ValidateResponse(C entity);
+
+        /// <summary>
         /// Send an request to get JSON content(of a new page)
         /// </summary>
         /// <param name="url">Url</param>
-        protected abstract Task<Result<(Type, C)>> GetResponse(string url);
+        protected async Task<Result<C>> GetJsonResponse(string url)
+        {
+            var result = await MakoClient.GetMakoTaggedHttpClient(MakoAPIKind.AppApi).GetJsonAsync<C>(url);
+            return ValidateResponse(result)
+                ? Result<C>.Success(result)
+                : Result<C>.Failure;
+        }
     }
 }

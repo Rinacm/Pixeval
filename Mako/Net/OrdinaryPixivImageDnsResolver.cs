@@ -31,6 +31,9 @@ namespace Mako.Net
             yield return IPAddress.Parse("210.140.92.140");
         }
 
-        public static implicit operator string(OrdinaryPixivImageDnsResolver resolver) => resolver.Lookup(null).First().ToString();
+        public static implicit operator string(OrdinaryPixivImageDnsResolver resolver)
+        {
+            return resolver.Lookup(null).First().ToString();
+        }
     }
 }

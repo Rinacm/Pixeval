@@ -16,24 +16,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System.Net.Http;
+using Mako.Util;
 
-namespace Mako.Net
+namespace Mako
 {
-    public class MakoTaggedHttpClient : HttpClient
+    public enum SearchDuration
     {
-        public MakoAPIKind ClientKind { get; set; }
+        [EnumMetadata("within_last_day")]
+        WithinLastDay,
 
-        public MakoTaggedHttpClient()
-        {
-        }
+        [EnumMetadata("within_last_week")]
+        WithinLastWeek,
 
-        public MakoTaggedHttpClient(HttpMessageHandler handler) : base(handler)
-        {
-        }
-
-        public MakoTaggedHttpClient(HttpMessageHandler handler, bool disposeHandler) : base(handler, disposeHandler)
-        {
-        }
+        [EnumMetadata("within_last_month")]
+        WithinLastMonth
     }
 }

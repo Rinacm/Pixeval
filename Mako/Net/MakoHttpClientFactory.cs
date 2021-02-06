@@ -29,16 +29,16 @@ namespace Mako.Net
     /// </summary>
     public class MakoHttpClientFactory
     {
-        private readonly IReadOnlyDictionary<MakoHttpClientKind, MakoTaggedHttpClient> clients;
+        private readonly IReadOnlyDictionary<MakoAPIKind, MakoTaggedHttpClient> clients;
 
         public MakoHttpClientFactory(IEnumerable<MakoTaggedHttpClient> clients)
         {
             this.clients = clients.ToDictionary(c => c.ClientKind, Scopes.Identity<MakoTaggedHttpClient>());
         }
 
-        public MakoTaggedHttpClient this[MakoHttpClientKind kind] => clients[kind];
+        public MakoTaggedHttpClient this[MakoAPIKind kind] => clients[kind];
 
-        public static MakoTaggedHttpClient Create(MakoHttpClientKind kind, HttpMessageHandler handler, Action<MakoTaggedHttpClient> action = null)
+        public static MakoTaggedHttpClient Create(MakoAPIKind kind, HttpMessageHandler handler, Action<MakoTaggedHttpClient> action = null)
         {
             var mako = new MakoTaggedHttpClient(handler) { ClientKind = kind };
             action.Let(ac => ac(mako));

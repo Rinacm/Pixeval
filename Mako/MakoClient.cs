@@ -94,7 +94,10 @@ namespace Mako
 
         private readonly List<ICancellable> registeredOperations = new List<ICancellable>();
 
-        static MakoClient() => AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
+        static MakoClient()
+        {
+            AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
+        }
 
         private MakoClient()
         {
@@ -117,10 +120,10 @@ namespace Mako
             MakoServices.AddSingleton<PixivImageInterceptedHttpClientHandler>();
 
             // register all the required HttpClients among entire application lifetime
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.AppApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.WebApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoHttpClientKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.AppApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.WebApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
             {
                 client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "http://www.pixiv.net");
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PixivIOSApp/5.8.7");
@@ -130,9 +133,9 @@ namespace Mako
             MakoServices.AddSingleton<MakoHttpClientFactory>();
 
             // register the Refit services
-            MakoServices.AddSingleton(RestService.For<IAppApiProtocol>(GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi)));
-            MakoServices.AddSingleton(RestService.For<IWebApiProtocol>(GetMakoTaggedHttpClient(MakoHttpClientKind.WebApi)));
-            MakoServices.AddSingleton(RestService.For<IAuthProtocol>(GetMakoTaggedHttpClient(MakoHttpClientKind.Auth)));
+            MakoServices.AddSingleton(RestService.For<IAppApiProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.AppApi)));
+            MakoServices.AddSingleton(RestService.For<IWebApiProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.WebApi)));
+            MakoServices.AddSingleton(RestService.For<IAuthProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.Auth)));
         }
 
         public MakoClient(string account, string password, bool bypass = true, CultureInfo clientCulture = null) : this()
@@ -149,22 +152,31 @@ namespace Mako
         /// </summary>
         /// <typeparam name="T">instance type</typeparam>
         /// <returns>instance</returns>
-        internal T GetService<T>() => GetService<T>(typeof(T));
+        internal T GetService<T>()
+        {
+            return GetService<T>(typeof(T));
+        }
 
-        internal T GetService<T>(Type type) => (T) MakoServiceProvider.GetService(type);
+        internal T GetService<T>(Type type)
+        {
+            return (T) MakoServiceProvider.GetService(type);
+        }
 
         /// <summary>
         /// Replaces an instance in <see cref="MakoServices"/>
         /// </summary>
         /// <param name="descriptor">instance to be replaced</param>
-        internal void ReplaceService(ServiceDescriptor descriptor) => MakoServices.Replace(descriptor);
+        internal void ReplaceService(ServiceDescriptor descriptor)
+        {
+            MakoServices.Replace(descriptor);
+        }
 
         /// <summary>
         /// Acquires an <see cref="MakoTaggedHttpClient"/> from <see cref="MakoServices"/>
         /// </summary>
         /// <param name="kind"></param>
         /// <returns></returns>
-        internal MakoTaggedHttpClient GetMakoTaggedHttpClient(MakoHttpClientKind kind)
+        internal MakoTaggedHttpClient GetMakoTaggedHttpClient(MakoAPIKind kind)
         {
             return GetService<MakoHttpClientFactory>()[kind];
         }
@@ -271,7 +283,10 @@ namespace Mako
             return new RankingAsyncEnumerable(rankOption, date, this).Also(RegisterOperation);
         }
 
-        private void RegisterOperation(ICancellable cancellable) => registeredOperations.Add(cancellable);
+        private void RegisterOperation(ICancellable cancellable)
+        {
+            registeredOperations.Add(cancellable);
+        }
 
         /// <summary>
         /// Ensure that user has already called <see cref="Login"/> before doing some login-required action

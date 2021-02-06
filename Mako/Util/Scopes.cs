@@ -204,5 +204,10 @@ namespace Mako.Util
             action(receiver);
             return receiver;
         }
+
+        public static R ApplyIfNonnull<T, R>(this T? receiver, Func<T, R> function) where T : struct /* C# 8 limitations */
+        {
+            return receiver.HasValue ? function(receiver.Value) : default;
+        }
     }
 }

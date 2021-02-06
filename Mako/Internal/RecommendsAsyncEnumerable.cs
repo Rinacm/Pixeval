@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Mako.Model;
 using Mako.Net;
 using Mako.Net.ResponseModel;
@@ -27,15 +26,19 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    public class RankingAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    public class RecommendsAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
     {
-        private readonly RankOption rankOption;
-        private readonly DateTime date;
+        private readonly IllustrationSortOption illustrationSortOption;
 
-        public RankingAsyncEnumerable(RankOption rankOption, DateTime date, MakoClient makoClient)
+        public RecommendsAsyncEnumerable(MakoClient makoClient, IllustrationSortOption illustrationSortOption)
             : base(makoClient)
         {
-            (this.rankOption, this.date) = (rankOption, date);
+            this.illustrationSortOption = illustrationSortOption;
+        }
+
+        public override void InsertTo(IList<Illustration> list, Illustration illustration)
+        {
+            illustration.Let(_ => list.AddSorted(illustration, MakoClient.GetService<IComparer<Illustration>>(illustrationSortOption.GetEnumMetadataContent() as Type)));
         }
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
@@ -45,19 +48,14 @@ namespace Mako.Internal
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new RankingAsyncEnumerator(this, rankOption, date, MakoClient);
+            return new RecommendsAsyncEnumerator(this, MakoClient);
         }
 
-        private class RankingAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, RankingResponse>
+        private class RecommendsAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, RecommendResponse>
         {
-            private readonly string rankOptionParameter;
-            private readonly string dateParameter;
-
-            public RankingAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RankOption rankOption, DateTime date, MakoClient makoClient)
+            public RecommendsAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, MakoClient makoClient)
                 : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
             {
-                rankOptionParameter = (string) rankOption.GetEnumMetadataContent();
-                dateParameter = date.ToString("yyyy-MM-dd");
             }
 
             protected override string NextUrl()
@@ -67,7 +65,7 @@ namespace Mako.Internal
 
             protected override string InitialUrl()
             {
-                return $"/v1/illust/ranking?filter=for_android&mode={rankOptionParameter}&date={dateParameter}";
+                return "/v1/illust/recommended?include_ranking_label=true";
             }
 
             protected override IEnumerator<Illustration> GetNewEnumerator()
@@ -75,7 +73,7 @@ namespace Mako.Internal
                 return Entity.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
-            protected override bool ValidateResponse(RankingResponse entity)
+            protected override bool ValidateResponse(RecommendResponse entity)
             {
                 return Entity.Illusts.IsNotNullOrEmpty();
             }

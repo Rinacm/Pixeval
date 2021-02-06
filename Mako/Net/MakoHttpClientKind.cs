@@ -18,7 +18,7 @@
 
 namespace Mako.Net
 {
-    public enum MakoHttpClientKind
+    public enum MakoAPIKind
     {
         Auth, AppApi, WebApi, Image
     }

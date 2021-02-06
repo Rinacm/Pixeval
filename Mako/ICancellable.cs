@@ -22,6 +22,9 @@ namespace Mako
     {
         bool Cancelled { get; set; }
 
-        public void Cancel() => Cancelled = true;
+        public void Cancel()
+        {
+            Cancelled = true;
+        }
     }
 }

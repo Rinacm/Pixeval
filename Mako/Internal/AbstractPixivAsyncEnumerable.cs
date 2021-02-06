@@ -30,7 +30,10 @@ namespace Mako.Internal
     /// <typeparam name="E">Model type</typeparam>
     public abstract class AbstractPixivAsyncEnumerable<E> : IPixivAsyncEnumerable<E>
     {
-        protected AbstractPixivAsyncEnumerable(MakoClient makoClient) => MakoClient = makoClient;
+        protected AbstractPixivAsyncEnumerable(MakoClient makoClient)
+        {
+            MakoClient = makoClient;
+        }
 
         protected MakoClient MakoClient { get; }
 
@@ -44,12 +47,18 @@ namespace Mako.Internal
         /// </summary>
         public bool Cancelled { get; set; }
 
-        /// <inheritdoc cref="IPixivAsyncEnumerable{E}.InsertTo"/>
-        public virtual void InsertTo(IList<E> list, E element) => element.Let(list.Add);
-
         public abstract IAsyncEnumerator<E> GetAsyncEnumerator(CancellationToken cancellationToken = default);
 
+        /// <inheritdoc cref="IPixivAsyncEnumerable{E}.InsertTo"/>
+        public virtual void InsertTo(IList<E> list, E element)
+        {
+            element.Let(list.Add);
+        }
+
         /// <inheritdoc cref="IPixivAsyncEnumerable{E}.Validate"/>
-        public virtual bool Validate(E item, IList<E> collection) => item.Check(() => !collection.Contains(item));
+        public virtual bool Validate(E item, IList<E> collection)
+        {
+            return item.Check(() => !collection.Contains(item));
+        }
     }
 }

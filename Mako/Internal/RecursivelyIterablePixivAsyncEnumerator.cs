@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Mako.Net;
 using Mako.Util;
 
 namespace Mako.Internal
@@ -56,7 +57,8 @@ namespace Mako.Internal
 
         protected C Entity { get; private set; }
 
-        protected RecursivelyIterablePixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoClient makoClient) : base(pixivEnumerable, makoClient)
+        protected RecursivelyIterablePixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
+            : base(pixivEnumerable, apiKind, makoClient)
         {
         }
 
@@ -64,11 +66,17 @@ namespace Mako.Internal
 
         protected abstract string InitialUrl();
 
-        protected virtual bool HasNextPage() => NextUrl().IsNotNullOrEmpty();
-
-        protected virtual bool HasNext() => true;
-
         protected abstract IEnumerator<E> GetNewEnumerator();
+
+        protected virtual bool HasNextPage()
+        {
+            return NextUrl().IsNotNullOrEmpty();
+        }
+
+        protected virtual bool HasNext()
+        {
+            return true;
+        }
 
         private async ValueTask<bool> MoveNextAsyncInternal()
         {
@@ -78,13 +86,13 @@ namespace Mako.Internal
             if (Entity == null)
             {
                 var url = InitialUrl();
-                switch (await GetResponse(url))
+                switch (await GetJsonResponse(url))
                 {
-                    case Success<(Type, C)> success:
-                        Update(success.Value.Item2);
+                    case Success<C> success:
+                        Update(success.Value);
                         break;
-                    case Failure<(Type, C)> failure: throw Errors.EnumeratingNetworkException(failure.Value.Item1.FullName, url, PixivEnumerable.RequestedPages, null, MakoClient.ContextualBoundedSession.Bypass);
-                    default:                         throw Errors.ArgumentOutOfRange("The value must be an instance of Success<T> or Failure<T>");
+                    case Failure<C> _: throw Errors.EnumeratingNetworkException(url, PixivEnumerable.RequestedPages, null, MakoClient.ContextualBoundedSession.Bypass);
+                    default:           throw Errors.ArgumentOutOfRange("The value must be an instance of Success<T> or Failure<T>");
                 }
             }
 
@@ -93,7 +101,7 @@ namespace Mako.Internal
             if (!HasNextPage())
                 return false;
 
-            if (await GetResponse(NextUrl()) is Success<(Type, C)> result)
+            if (await GetJsonResponse(NextUrl()) is Success<(Type, C)> result)
             {
                 Update(result.Value.Item2);
                 return true;
@@ -101,7 +109,10 @@ namespace Mako.Internal
             return false;
         }
 
-        public override ValueTask<bool> MoveNextAsync() => MoveNextAsyncInternal();
+        public override ValueTask<bool> MoveNextAsync()
+        {
+            return MoveNextAsyncInternal();
+        }
 
         protected override void Update(C entity)
         {

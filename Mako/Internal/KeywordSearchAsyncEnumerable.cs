@@ -29,11 +29,14 @@ namespace Mako.Internal
 {
     internal class KeywordSearchAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
     {
+        private readonly DateTime? startDate;
+        private readonly DateTime? endDate;
         private readonly SearchMatchOption searchMatchOption;
         private readonly IllustrationSortOption illustrationSortOption;
+        private readonly SearchDuration? searchDuration;
         private readonly int searchCount;
         private readonly string keyword;
-        private readonly uint start;
+        private readonly uint start ;
 
         public KeywordSearchAsyncEnumerable(
             MakoClient makoClient,
@@ -41,14 +44,27 @@ namespace Mako.Internal
             uint start,
             int searchCount,
             SearchMatchOption searchMatchOption,
-            IllustrationSortOption illustrationSortOption
-        ) : base(makoClient) => (this.start, this.keyword, this.searchCount, this.searchMatchOption, this.illustrationSortOption) = (start, keyword, searchCount, searchMatchOption, illustrationSortOption);
+            IllustrationSortOption illustrationSortOption,
+            SearchDuration? searchDuration,
+            DateTime? startDate = null,
+            DateTime? endDate = null
+        ) : base(makoClient)
+        {
+            this.keyword = keyword;
+            this.start = start;
+            this.searchCount = searchCount;
+            this.searchMatchOption = searchMatchOption;
+            this.illustrationSortOption = illustrationSortOption;
+            this.searchDuration = searchDuration;
+            this.startDate = startDate;
+            this.endDate = endDate;
+        }
 
         public override void InsertTo(IList<Illustration> list, Illustration illustration)
         {
             illustration.Let(_ =>
             {
-                if (MakoClient.ContextualBoundedSession.IsPremium)
+                if (MakoClient.ContextualBoundedSession.IsPremium && illustrationSortOption == IllustrationSortOption.Popularity)
                     list.Add(illustration);
                 else
                     list.AddSorted(illustration, MakoClient.GetService<IComparer<Illustration>>(illustrationSortOption.GetEnumMetadataContent() as Type));
@@ -57,7 +73,7 @@ namespace Mako.Internal
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new KeywordSearchAsyncEnumerator(this, start, searchCount, keyword, searchMatchOption, MakoClient);
+            return new KeywordSearchAsyncEnumerator(this, start, searchCount, keyword, searchMatchOption, searchDuration, illustrationSortOption, startDate, endDate, MakoClient);
         }
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
@@ -67,13 +83,15 @@ namespace Mako.Internal
 
         private class KeywordSearchAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, QueryWorksResponse>
         {
+            private readonly IllustrationSortOption illustrationSortOption;
             private readonly SearchMatchOption searchMatchOption;
+            private readonly SearchDuration? searchDuration;
+            private readonly DateTime? startDate;
+            private readonly DateTime? endDate;
             private readonly int searchCount;
             private readonly uint current;
             private readonly string keyword;
             private int currentIllustIndex;
-
-            public override Illustration Current => CurrentEntityEnumerator.Current;
 
             public KeywordSearchAsyncEnumerator(
                 IPixivAsyncEnumerable<Illustration> pixivEnumerable,
@@ -81,18 +99,46 @@ namespace Mako.Internal
                 int searchCount,
                 string keyword,
                 SearchMatchOption searchMatchOption,
+                SearchDuration? searchDuration,
+                IllustrationSortOption illustrationSortOption,
+                DateTime? startDate,
+                DateTime? endDate,
                 MakoClient makoClient
-            ) : base(pixivEnumerable, makoClient) => (this.current, this.keyword, this.searchCount, this.searchMatchOption) = (current, keyword, searchCount, searchMatchOption);
+            ) : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
+            {
+                this.current = current;
+                this.searchCount = searchCount;
+                this.keyword = keyword;
+                this.searchMatchOption = searchMatchOption;
+                this.searchDuration = searchDuration;
+                this.startDate = startDate;
+                this.endDate = endDate;
+                this.illustrationSortOption = illustrationSortOption;
+            }
 
-            protected override string NextUrl() => Entity.NextUrl;
+            protected override string NextUrl()
+            {
+                return Entity.NextUrl;
+            }
 
-            protected override bool HasNext() => searchCount == -1 || currentIllustIndex++ < searchCount;
+            protected override bool HasNext()
+            {
+                return searchCount == -1 || currentIllustIndex++ < searchCount;
+            }
 
             protected override string InitialUrl()
             {
                 var searchTarget = (string) searchMatchOption.GetEnumMetadataContent();
-                var sort = MakoClient.ContextualBoundedSession.IsPremium ? "date_desc" : "popular_desc";
-                return $"/v1/search/illust?search_target={searchTarget}&sort={sort}&word={keyword}&filter=for_android&offset={current}";
+                var sort = illustrationSortOption switch
+                {
+                    IllustrationSortOption.Popularity when MakoClient.ContextualBoundedSession.IsPremium => "&sort=popular_desc",
+                    IllustrationSortOption.PublishDate                                                   => "&sort=date_desc",
+                    _                                                                                    => null
+                };
+                var start = startDate.ApplyIfNonnull(dn => $"&start_date={dn:yyyy-MM-dd}");
+                var end = endDate.ApplyIfNonnull(dn => $"&end_date={dn:yyyy-MM-dd}");
+                var duration = searchDuration.ApplyIfNonnull(du => $"&duration={du.GetEnumMetadataContent()}");
+                return $"/v1/search/illust?search_target={searchTarget}&word={keyword}&filter=for_ios&offset={current}{sort}{start}{end}{duration}";
             }
 
             protected override bool HasNextPage()
@@ -106,12 +152,9 @@ namespace Mako.Internal
                 return Entity.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
-            protected override async Task<Result<(Type, QueryWorksResponse)>> GetResponse(string url)
+            protected override bool ValidateResponse(QueryWorksResponse entity)
             {
-                var result = await MakoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<QueryWorksResponse>(url);
-                return result.Illusts.IsNotNullOrEmpty()
-                    ? Result<(Type, QueryWorksResponse)>.Success((GetType(), result))
-                    : Result<(Type, QueryWorksResponse)>.Failure;
+                return Entity.Illusts.IsNotNullOrEmpty();
             }
         }
     }

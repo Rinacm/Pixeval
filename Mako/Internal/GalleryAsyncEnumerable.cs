@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Mako.Model;
 using Mako.Net;
 using Mako.Net.ResponseModel;
@@ -33,7 +32,10 @@ namespace Mako.Internal
         private readonly RestrictionPolicy restrictionPolicy;
 
         public BookmarkAsyncEnumerable(MakoClient makoClient, string uid, RestrictionPolicy restrictionPolicy)
-            : base(makoClient) => (this.uid, this.restrictionPolicy) = (uid, restrictionPolicy);
+            : base(makoClient)
+        {
+            (this.uid, this.restrictionPolicy) = (uid, restrictionPolicy);
+        }
 
         public override bool Validate(Illustration item, IList<Illustration> collection)
         {
@@ -50,31 +52,35 @@ namespace Mako.Internal
             private readonly RestrictionPolicy restrictionPolicy;
             private readonly string uid;
 
-            public override Illustration Current => CurrentEntityEnumerator.Current;
-
             public BookmarkAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
-                : base(pixivEnumerable, makoClient) => (this.restrictionPolicy, this.uid) = (restrictionPolicy, uid);
+                : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
+            {
+                (this.restrictionPolicy, this.uid) = (restrictionPolicy, uid);
+            }
 
             protected override IEnumerator<Illustration> GetNewEnumerator()
             {
                 return Entity.Illusts.SelectNotNull(MakoExtensions.ToIllustration).GetEnumerator();
             }
 
-            protected override string NextUrl() => Entity.NextUrl;
-
-            protected override string InitialUrl() => restrictionPolicy switch
+            protected override string NextUrl()
             {
-                RestrictionPolicy.Public  => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=public&filter=for_ios",
-                RestrictionPolicy.Private => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=private&filter=for_ios",
-                _                         => throw new ArgumentOutOfRangeException()
-            };
+                return Entity.NextUrl;
+            }
 
-            protected override async Task<Result<(Type, BookmarkResponse)>> GetResponse(string url)
+            protected override string InitialUrl()
             {
-                var result = await MakoClient.GetMakoTaggedHttpClient(MakoHttpClientKind.AppApi).GetJsonAsync<BookmarkResponse>(url);
-                return result.Illusts.IsNotNullOrEmpty()
-                    ? Result<(Type, BookmarkResponse)>.Success((GetType(), result))
-                    : Result<(Type, BookmarkResponse)>.Failure;
+                return restrictionPolicy switch
+                {
+                    RestrictionPolicy.Public  => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=public&filter=for_ios",
+                    RestrictionPolicy.Private => $"/v1/user/bookmarks/illust?user_id={uid}&restrict=private&filter=for_ios",
+                    _                         => throw new ArgumentOutOfRangeException()
+                };
+            }
+
+            protected override bool ValidateResponse(BookmarkResponse entity)
+            {
+                return entity.Illusts.IsNotNullOrEmpty();
             }
         }
     }

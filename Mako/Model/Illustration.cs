@@ -63,7 +63,10 @@ namespace Mako.Model
 
         public string Resolution { get; set; }
 
-        public bool IsR18 => Tags?.Any(x => Regex.IsMatch(x?.Name ?? string.Empty, "[Rr][-]?18[Gg]?") || Regex.IsMatch(x?.TranslatedName ?? string.Empty, "[Rr][-]?18[Gg]?")) ?? false;
+        public bool IsR18
+        {
+            get { return Tags?.Any(x => Regex.IsMatch(x?.Name ?? string.Empty, "[Rr][-]?18[Gg]?") || Regex.IsMatch(x?.TranslatedName ?? string.Empty, "[Rr][-]?18[Gg]?")) ?? false; }
+        }
 
         public object Clone()
         {

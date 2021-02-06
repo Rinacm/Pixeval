@@ -38,7 +38,10 @@ namespace Mako
         }
 
         public MakoNetworkException([CanBeNull] string message, bool bypass, string url = null, Exception cause = null)
-            : base(message, cause) => (Bypass, Url) = (bypass, url);
+            : base(message, cause)
+        {
+            (Bypass, Url) = (bypass, url);
+        }
 
         public MakoNetworkException([CanBeNull] string message, [CanBeNull] Exception innerException) : base(message, innerException)
         {
