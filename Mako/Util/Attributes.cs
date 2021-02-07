@@ -29,7 +29,7 @@ namespace Mako.Util
 
     public class EnumMetadata : Attribute
     {
-        public object Data { get; set; }
+        public object Data { get; }
 
         public EnumMetadata(object metadata)
         {

@@ -25,12 +25,12 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class PixivApiLocalizedAutoRefreshingDelegatedHttpMessageHandler : HttpMessageHandler
+    public class PixivApiLocalizedAutoRefreshingDelegateHttpMessageHandler : HttpMessageHandler
     {
         private readonly MakoClient makoClient;
-        private readonly ManualResetEvent refreshing = new ManualResetEvent(true);
+        private readonly ManualResetEvent refreshing = new(true);
 
-        public PixivApiLocalizedAutoRefreshingDelegatedHttpMessageHandler([InjectMarker] MakoClient makoClient)
+        public PixivApiLocalizedAutoRefreshingDelegateHttpMessageHandler([InjectMarker] MakoClient makoClient)
         {
             this.makoClient = makoClient;
         }
@@ -42,6 +42,7 @@ namespace Mako.Net
                 throw Errors.AuthenticationTimeout(null, makoClient.ContextualBoundedSession.RefreshToken, true, true);
             }
 
+            request.RequestUri = new Uri(request.RequestUri!.ToString().Replace("https", "http"));
             var headers = request.Headers;
             var host = request.RequestUri!.IdnHost;
 

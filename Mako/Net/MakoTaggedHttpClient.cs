@@ -22,7 +22,7 @@ namespace Mako.Net
 {
     public class MakoTaggedHttpClient : HttpClient
     {
-        public MakoAPIKind ClientKind { get; set; }
+        public MakoAPIKind ClientKind { get; init; }
 
         public MakoTaggedHttpClient()
         {

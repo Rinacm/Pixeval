@@ -108,21 +108,22 @@ namespace Mako
             // register the DNS resolver
             MakoServices.AddSingleton<OrdinaryPixivDnsResolver>();
             MakoServices.AddSingleton<OrdinaryPixivImageDnsResolver>();
+            MakoServices.AddSingleton<LocalMachineDnsResolver>();
 
             // register the illustration comparators
             MakoServices.AddSingleton<IllustrationPopularityComparator>();
             MakoServices.AddSingleton<IllustrationPublishDateComparator>();
 
             // register the RequestInterceptor and the HttpClientHandler
-            MakoServices.AddSingleton<PixivApiLocalizedAutoRefreshingHttpRequestInterceptor>();
-            MakoServices.AddSingleton<PixivImageHttpRequestInterceptor>();
+            MakoServices.AddSingleton<PixivApiLocalizedAutoRefreshingDelegateHttpMessageHandler>();
+            MakoServices.AddSingleton<PixivImageDelegateHttpMessageHandler>();
             MakoServices.AddSingleton<PixivApiInterceptedHttpClientHandler>();
             MakoServices.AddSingleton<PixivImageInterceptedHttpClientHandler>();
 
             // register all the required HttpClients among entire application lifetime
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.AppApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.WebApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoUrls.OAuthBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.AppApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.WebApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.OAuthBaseUrl)));
             MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
             {
                 client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "http://www.pixiv.net");
@@ -195,7 +196,7 @@ namespace Mako
             try
             {
                 var token = await GetService<IAuthProtocol>().GetTokenByPassword(new PasswordTokenRequest { Name = account, Password = password }, time, hash);
-                ContextualBoundedSession = Session.Parse(token, password, ContextualBoundedSession);
+                ContextualBoundedSession = Session.Parse(token, password, null);
             }
             catch (Exception e)
             {
@@ -254,15 +255,26 @@ namespace Mako
         /// This option only affects when invoking <see cref="AbstractPixivAsyncEnumerable{E}.InsertTo"/>, it does not change
         /// the order of <see cref="IPixivAsyncEnumerable{E}"/>
         /// </param>
+        /// <param name="searchDuration"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
         /// <exception cref="ArgumentOutOfRangeException">If <see cref="start"/> is not in range [1, 5000)</exception>
         /// <returns><see cref="IPixivAsyncEnumerable{E}"/></returns>
-        public IPixivAsyncEnumerable<Illustration> Search(string keyword, uint start = 1, int searchCount = -1, SearchMatchOption searchMatchOption = SearchMatchOption.TitleAndCaption, IllustrationSortOption illustrationSortOption = IllustrationSortOption.None)
+        public IPixivAsyncEnumerable<Illustration> Search(
+            string keyword,
+            uint start = 1,
+            int searchCount = -1,
+            SearchMatchOption searchMatchOption = SearchMatchOption.TitleAndCaption,
+            IllustrationSortOption illustrationSortOption = IllustrationSortOption.None,
+            SearchDuration? searchDuration = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
             if (start < 1 || start >= 5000)
                 throw Errors.ArgumentOutOfRange($"desire range: [1, 5000), actual value: start({start})");
 
             EnsureUserLoggedIn();
-            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption).Also(RegisterOperation);
+            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption, searchDuration, startDate, endDate).Also(RegisterOperation);
         }
 
         /// <summary>

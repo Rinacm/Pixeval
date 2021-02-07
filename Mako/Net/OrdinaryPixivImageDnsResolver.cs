@@ -16,24 +16,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Mako.Net
 {
     public class OrdinaryPixivImageDnsResolver : INameResolver
     {
-        public IEnumerable<IPAddress> Lookup(string hostname)
+        public Task<IPAddress[]> Lookup(string hostname)
         {
-            yield return IPAddress.Parse("210.140.92.138");
-            yield return IPAddress.Parse("210.140.92.139");
-            yield return IPAddress.Parse("210.140.92.140");
-        }
-
-        public static implicit operator string(OrdinaryPixivImageDnsResolver resolver)
-        {
-            return resolver.Lookup(null).First().ToString();
+            return Task.FromResult(new[]
+            {
+                IPAddress.Parse("210.140.92.138"), IPAddress.Parse("210.140.92.139"), IPAddress.Parse("210.140.92.140")
+            });
         }
     }
 }

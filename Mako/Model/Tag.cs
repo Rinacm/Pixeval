@@ -20,8 +20,8 @@ namespace Mako.Model
 {
     public class Tag
     {
-        public string Name { get; set; }
+        public string Name { get; init; }
 
-        public string TranslatedName { get; set; }
+        public string TranslatedName { get; init; }
     }
 }

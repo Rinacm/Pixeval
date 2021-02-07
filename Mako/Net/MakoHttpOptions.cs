@@ -16,12 +16,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System.Net.Http;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Mako.Util;
 
 namespace Mako.Net
 {
-    public static class MakoUrls
+    public static class MakoHttpOptions
     {
         public const string AppApiBaseUrl = "https://app-api.pixiv.net";
 
@@ -40,5 +43,22 @@ namespace Mako.Net
         public static readonly Regex OAuthHost = "^oauth\\.secure\\.pixiv\\.net$".ToRegex();
 
         public static readonly Regex BypassHost = "^app-api\\.pixiv\\.net$|^(pixiv\\.net)|(www\\.pixiv\\.net)$".ToRegex();
+
+        internal static HttpMessageInvoker ConstructHttpMessageInvoker(INameResolver dnsResolver)
+        {
+            return new(new SocketsHttpHandler
+            {
+                ConnectCallback = async (context, token) =>
+                {
+                    var sockets = new Socket(SocketType.Stream, ProtocolType.Tcp); // disposed by networkStream
+                    await sockets.ConnectAsync(await dnsResolver.Lookup(context.DnsEndPoint.Host), 443, token);
+                    var networkStream = new NetworkStream(sockets, true); // disposed by sslStream
+                    var sslStream = new SslStream(networkStream, false, (_, _, _, _) => true);
+
+                    await sslStream.AuthenticateAsClientAsync(string.Empty);
+                    return sslStream;
+                }
+            });
+        }
     }
 }

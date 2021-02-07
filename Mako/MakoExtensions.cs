@@ -73,13 +73,11 @@ namespace Mako
             };
             if (illustration.IsManga)
             {
-                illustration.MangaMetadata = illust.MetaPages.Select(mp =>
+                illustration.MangaMetadata = illust.MetaPages.Select(mp => illustration with
                 {
-                    var p = (Illustration) illustration.Clone();
-                    p.ThumbnailUrl = mp.ImageUrls.Medium;
-                    p.OriginalUrl = mp.ImageUrls.Original;
-                    p.LargeUrl = mp.ImageUrls.Large;
-                    return p;
+                    ThumbnailUrl = mp.ImageUrls.Medium,
+                    OriginalUrl = mp.ImageUrls.Original,
+                    LargeUrl = mp.ImageUrls.Large
                 }).ToArray();
                 foreach (var i in illustration.MangaMetadata)
                 {

@@ -42,9 +42,15 @@ namespace Mako.Util
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IfNull(this object obj, Action action)
+        public static void IfNull([CanBeNull] this object obj, Action action)
         {
             if (obj == null) action();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void IfNotNull([CanBeNull] this object obj, Action action)
+        {
+            if (obj != null) action();
         }
 
         /// <summary>

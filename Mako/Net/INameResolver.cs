@@ -16,8 +16,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Mako.Net
 {
@@ -26,8 +26,6 @@ namespace Mako.Net
     /// </summary>
     public interface INameResolver
     {
-        // ReSharper disable once UnusedMemberInSuper.Global
-        // ReSharper disable once UnusedParameter.Global
-        IEnumerable<IPAddress> Lookup(string hostname);
+        Task<IPAddress[]> Lookup(string hostname);
     }
 }

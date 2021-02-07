@@ -25,7 +25,7 @@ using JetBrains.Annotations;
 namespace Mako.Model
 {
     [PublicAPI]
-    public class Illustration : ICloneable
+    public record Illustration
     {
         public string Id { get; set; }
 
@@ -66,11 +66,6 @@ namespace Mako.Model
         public bool IsR18
         {
             get { return Tags?.Any(x => Regex.IsMatch(x?.Name ?? string.Empty, "[Rr][-]?18[Gg]?") || Regex.IsMatch(x?.TranslatedName ?? string.Empty, "[Rr][-]?18[Gg]?")) ?? false; }
-        }
-
-        public object Clone()
-        {
-            return MemberwiseClone();
         }
     }
 }

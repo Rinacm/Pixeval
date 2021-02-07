@@ -20,9 +20,9 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class PixivImageInterceptedHttpClientHandler : InterceptedHttpClientHandler
+    public class PixivImageInterceptedHttpClientHandler : DelegatedHttpClientHandler
     {
-        public PixivImageInterceptedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient, makoClient.GetService<PixivImageHttpRequestInterceptor>())
+        public PixivImageInterceptedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient.GetService<PixivImageDelegateHttpMessageHandler>())
         {
         }
     }

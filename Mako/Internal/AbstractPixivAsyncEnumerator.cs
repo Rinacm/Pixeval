@@ -159,7 +159,7 @@ namespace Mako.Internal
         /// <param name="url">Url</param>
         protected async Task<Result<C>> GetJsonResponse(string url)
         {
-            var result = await MakoClient.GetMakoTaggedHttpClient(MakoAPIKind.AppApi).GetJsonAsync<C>(url);
+            var result = await MakoClient.GetMakoTaggedHttpClient(ApiKind).GetJsonAsync<C>(url);
             return ValidateResponse(result)
                 ? Result<C>.Success(result)
                 : Result<C>.Failure;

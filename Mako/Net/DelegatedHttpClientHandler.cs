@@ -23,19 +23,18 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class InterceptedHttpClientHandler : HttpClientHandler
+    public class DelegatedHttpClientHandler : HttpClientHandler
     {
-        private readonly MakoClient makoClient;
         private readonly HttpMessageInvoker delegatedHandler;
 
-        protected InterceptedHttpClientHandler(MakoClient makoClient, HttpMessageHandler delegatedHandler)
+        protected DelegatedHttpClientHandler(HttpMessageHandler delegatedHandler)
         {
-            (this.makoClient, this.delegatedHandler) = (makoClient, new HttpMessageInvoker(delegatedHandler));
+            this.delegatedHandler = new HttpMessageInvoker(delegatedHandler);
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return await Scopes.AttemptsAsync(() => base.SendAsync(request, cancellationToken), 2, request);
+            return await Scopes.AttemptsAsync(() => delegatedHandler.SendAsync(request, cancellationToken), 2, request);
         }
     }
 }

@@ -96,5 +96,15 @@ namespace Mako.Util
 
             list.Insert(i, item);
         }
+
+        public static IAsyncEnumerable<T> Async<T>(this IEnumerable<T> collection)
+        {
+            return new AdaptedAsyncEnumerable<T>(collection);
+        }
+
+        public static IEnumerable<T> Of<T>(params T[] ts)
+        {
+            return ts;
+        }
     }
 }

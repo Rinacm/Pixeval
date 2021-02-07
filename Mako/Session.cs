@@ -19,14 +19,13 @@
 using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
-using Mako.Net;
 using Mako.Net.ResponseModel;
 using Mako.Util;
 
 namespace Mako
 {
     [PublicAPI]
-    public class Session
+    public record Session
     {
         /// <summary>
         /// User name
@@ -126,33 +125,23 @@ namespace Mako
             return AccessToken.IsNullOrEmpty() || DateTime.Now - TokenRefreshed >= TimeSpan.FromMinutes(50);
         }
 
-        public IInterceptConfigurations ToPixivInterceptConfiguration()
-        {
-            return new PixivRequestInterceptorConfiguration
-            {
-                Token = AccessToken,
-                Cookie = Cookie,
-                Bypass = Bypass,
-                MirrorHost = MirrorHost
-            };
-        }
-
         public static Session Parse(TokenResponse tokenResponse, string password, Session previousSession)
         {
             var response = tokenResponse.ToResponse;
-            var session = (Session) previousSession.MemberwiseClone();
-            session.TokenRefreshed = DateTime.Now;
-            session.Name = response.User.Name;
-            session.ExpireIn = DateTime.Now + TimeSpan.FromSeconds(response.ExpiresIn);
-            session.AccessToken = response.AccessToken;
-            session.RefreshToken = response.RefreshToken;
-            session.AvatarUrl = response.User.ProfileImageUrls.Px170X170;
-            session.Id = response.User.Id.ToString();
-            session.MailAddress = response.User.MailAddress;
-            session.Account = response.User.Account;
-            session.Password = password;
-            session.IsPremium = response.User.IsPremium;
-            return session;
+            return previousSession ?? new Session() with
+            {
+                TokenRefreshed = DateTime.Now,
+                Name = response.User.Name,
+                ExpireIn = DateTime.Now + TimeSpan.FromSeconds(response.ExpiresIn),
+                AccessToken = response.AccessToken,
+                RefreshToken = response.RefreshToken,
+                AvatarUrl = response.User.ProfileImageUrls.Px170X170,
+                Id = response.User.Id.ToString(),
+                MailAddress = response.User.MailAddress,
+                Account = response.User.Account,
+                Password = password,
+                IsPremium = response.User.IsPremium
+            };
         }
 
 #if DEBUG

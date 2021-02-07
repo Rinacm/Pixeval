@@ -9,6 +9,7 @@ namespace Mako.Console
     {
         public static async Task Main()
         {
+            System.Console.WriteLine(Environment.Version);
         }
     }
 }

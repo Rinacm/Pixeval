@@ -24,11 +24,11 @@ using Mako.Util;
 
 namespace Mako.Net
 {
-    public class PixivImageHttpRequestInterceptor : HttpMessageHandler
+    public class PixivImageDelegateHttpMessageHandler : HttpMessageHandler
     {
         private readonly MakoClient makoClient;
 
-        public PixivImageHttpRequestInterceptor([InjectMarker] MakoClient makoClient)
+        public PixivImageDelegateHttpMessageHandler([InjectMarker] MakoClient makoClient)
         {
             this.makoClient = makoClient;
         }
@@ -71,7 +71,6 @@ namespace Mako.Net
             INameResolver resolver = makoClient.ContextualBoundedSession.Bypass
                 ? makoClient.GetService<OrdinaryPixivImageDnsResolver>()
                 : makoClient.GetService<LocalMachineDnsResolver>();
-
             return MakoHttpOptions.ConstructHttpMessageInvoker(resolver).SendAsync(request, cancellationToken);
         }
     }
