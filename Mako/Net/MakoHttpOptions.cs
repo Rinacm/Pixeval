@@ -16,6 +16,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System.Text.RegularExpressions;
+using Mako.Util;
+
 namespace Mako.Net
 {
     public static class MakoUrls
@@ -27,5 +30,15 @@ namespace Mako.Net
         public const string OAuthBaseUrl = "https://oauth.secure.pixiv.net";
 
         public const string WebApiBaseUrl = "https://www.pixiv.net";
+
+        public const string ImageHost = "i.pximg.net";
+
+        public static readonly Regex ApiHost = "^app-api\\.pixiv\\.net$".ToRegex();
+
+        public static readonly Regex WebApiHost = "^(pixiv\\.net)|(www\\.pixiv\\.net)$".ToRegex();
+
+        public static readonly Regex OAuthHost = "^oauth\\.secure\\.pixiv\\.net$".ToRegex();
+
+        public static readonly Regex BypassHost = "^app-api\\.pixiv\\.net$|^(pixiv\\.net)|(www\\.pixiv\\.net)$".ToRegex();
     }
 }

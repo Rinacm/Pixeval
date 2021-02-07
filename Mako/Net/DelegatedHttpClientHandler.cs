@@ -26,19 +26,15 @@ namespace Mako.Net
     public class InterceptedHttpClientHandler : HttpClientHandler
     {
         private readonly MakoClient makoClient;
-        private readonly IHttpRequestInterceptor interceptor;
+        private readonly HttpMessageInvoker delegatedHandler;
 
-        protected InterceptedHttpClientHandler(MakoClient makoClient, IHttpRequestInterceptor interceptor)
+        protected InterceptedHttpClientHandler(MakoClient makoClient, HttpMessageHandler delegatedHandler)
         {
-            (this.makoClient, this.interceptor) = (makoClient, interceptor);
-            ServerCertificateCustomValidationCallback = DangerousAcceptAnyServerCertificateValidator;
+            (this.makoClient, this.delegatedHandler) = (makoClient, new HttpMessageInvoker(delegatedHandler));
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var task = interceptor?.Intercept(request, makoClient.ContextualBoundedSession.ToPixivInterceptConfiguration());
-            if (task != null) await task;
-
             return await Scopes.AttemptsAsync(() => base.SendAsync(request, cancellationToken), 2, request);
         }
     }
