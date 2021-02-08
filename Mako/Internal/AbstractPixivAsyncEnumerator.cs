@@ -74,9 +74,9 @@ namespace Mako.Internal
     /// </para>
     /// <example>
     ///     <code>
-    ///     public static IPixivAsyncEnumerable&lt;Entity&gt; GetAsyncPixivEnumerable() => ...
+    ///     public static IPixivFetchEngine&lt;Entity&gt; GetEngine() => ...
     ///
-    ///     var enumerator = GetAsyncPixivEnumerable().GetAsyncEnumerator();
+    ///     var enumerator = GetEngine().GetAsyncEnumerator();
     ///     while(enumerator.MoveNext())
     ///     {
     ///         var entity = enumerator.Current;
@@ -95,9 +95,9 @@ namespace Mako.Internal
     internal abstract class AbstractPixivAsyncEnumerator<E, C> : IAsyncEnumerator<E>
     {
         /// <summary>
-        /// The <see cref="IPixivAsyncEnumerable{E}"/> which owns this <see cref="AbstractPixivAsyncEnumerator{E,C}"/>
+        /// The <see cref="IPixivFetchEngine{E}"/> which owns this <see cref="AbstractPixivAsyncEnumerator{E,C}"/>
         /// </summary>
-        protected IPixivAsyncEnumerable<E> PixivEnumerable;
+        protected IPixivFetchEngine<E> PixivEnumerable;
 
         /// <summary>
         /// The translated models of current page
@@ -124,7 +124,7 @@ namespace Mako.Internal
         [CanBeNull]
         public virtual E Current => CurrentEntityEnumerator.Current;
 
-        protected AbstractPixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
+        protected AbstractPixivAsyncEnumerator(IPixivFetchEngine<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
         {
             (PixivEnumerable, ApiKind, MakoClient) = (pixivEnumerable, apiKind, makoClient);
         }
@@ -139,7 +139,7 @@ namespace Mako.Internal
         public abstract ValueTask<bool> MoveNextAsync();
 
         /// <summary>
-        /// Update the value of <see cref="IPixivAsyncEnumerable{E}.RequestedPages"/> and
+        /// Update the value of <see cref="IPixivFetchEngine{E}.RequestedPages"/> and
         /// <see cref="CurrentEntityEnumerator"/> and other related fields after requested
         /// a new page
         /// </summary>

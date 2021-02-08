@@ -26,7 +26,7 @@ namespace Mako
         /// <summary>
         /// Do not perform any sort operation
         /// </summary>
-        None,
+        Unspecified,
 
         /// <summary>
         /// Sort by bookmarks

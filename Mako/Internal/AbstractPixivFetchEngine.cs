@@ -28,20 +28,20 @@ namespace Mako.Internal
     /// <see cref="AbstractPixivAsyncEnumerator{E,C}"/>
     /// </summary>
     /// <typeparam name="E">Model type</typeparam>
-    public abstract class AbstractPixivAsyncEnumerable<E> : IPixivAsyncEnumerable<E>
+    public abstract class AbstractPixivFetchEngine<E> : IPixivFetchEngine<E>
     {
-        protected AbstractPixivAsyncEnumerable(MakoClient makoClient)
+        protected AbstractPixivFetchEngine(MakoClient makoClient)
         {
             MakoClient = makoClient;
         }
 
         protected MakoClient MakoClient { get; }
 
-        /// <inheritdoc cref="IPixivAsyncEnumerable{E}.RequestedPages"/>
+        /// <inheritdoc cref="IPixivFetchEngine{E}.RequestedPages"/>
         public int RequestedPages { get; set; }
 
         /// <summary>
-        /// Get or set the cancellation state of current <see cref="AbstractPixivAsyncEnumerable{E}"/>, the
+        /// Get or set the cancellation state of current <see cref="AbstractPixivFetchEngine{E}"/>, the
         /// cancellation is cooperative, in each enumeration the <see cref="AbstractPixivAsyncEnumerator{E,C}.MoveNextAsync"/>
         /// will check if the operation has been cancelled, and returns false if so
         /// </summary>
@@ -49,13 +49,13 @@ namespace Mako.Internal
 
         public abstract IAsyncEnumerator<E> GetAsyncEnumerator(CancellationToken cancellationToken = default);
 
-        /// <inheritdoc cref="IPixivAsyncEnumerable{E}.InsertTo"/>
+        /// <inheritdoc cref="IPixivFetchEngine{E}.InsertTo"/>
         public virtual void InsertTo(IList<E> list, E element)
         {
             element.Let(list.Add);
         }
 
-        /// <inheritdoc cref="IPixivAsyncEnumerable{E}.Validate"/>
+        /// <inheritdoc cref="IPixivFetchEngine{E}.Validate"/>
         public virtual bool Validate(E item, IList<E> collection)
         {
             return item.Check(() => !collection.Contains(item));

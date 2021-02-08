@@ -42,13 +42,13 @@ namespace Mako.Net
                 throw Errors.AuthenticationTimeout(null, makoClient.ContextualBoundedSession.RefreshToken, true, true);
             }
 
-            request.RequestUri = new Uri(request.RequestUri!.ToString().Replace("https", "http"));
+            request.RequestUri = MakoHttpOptions.UseHttpScheme(request.RequestUri);
             var headers = request.Headers;
             var host = request.RequestUri!.IdnHost;
 
             request.Headers.TryAddWithoutValidation("Accept-Language", makoClient.ClientCulture.Name);
 
-            if (makoClient.ContextualBoundedSession != null && makoClient.ContextualBoundedSession.RefreshRequired() && /* prevent recursion */ !MakoHttpOptions.OAuthHost.IsMatch(host))
+            if (makoClient.ContextualBoundedSession is not null && makoClient.ContextualBoundedSession.RefreshRequired() && /* prevent recursion */ !MakoHttpOptions.OAuthHost.IsMatch(host))
             {
                 using var semaphore = new SemaphoreSlim(1, 1);
                 await semaphore.WaitAsync(cancellationToken);

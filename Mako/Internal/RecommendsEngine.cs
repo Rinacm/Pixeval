@@ -26,14 +26,16 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    public class RecommendsAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    public class RecommendsEngine : AbstractPixivFetchEngine<Illustration>
     {
         private readonly IllustrationSortOption illustrationSortOption;
+        private readonly RecommendationType recommendationType;
 
-        public RecommendsAsyncEnumerable(MakoClient makoClient, IllustrationSortOption illustrationSortOption)
+        public RecommendsEngine(MakoClient makoClient, IllustrationSortOption illustrationSortOption, RecommendationType recommendationType)
             : base(makoClient)
         {
             this.illustrationSortOption = illustrationSortOption;
+            this.recommendationType = recommendationType;
         }
 
         public override void InsertTo(IList<Illustration> list, Illustration illustration)
@@ -48,14 +50,17 @@ namespace Mako.Internal
 
         public override IAsyncEnumerator<Illustration> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new RecommendsAsyncEnumerator(this, MakoClient);
+            return new RecommendsAsyncEnumerator(this, recommendationType, MakoClient);
         }
 
         private class RecommendsAsyncEnumerator : RecursivelyIterablePixivAsyncEnumerator<Illustration, RecommendResponse>
         {
-            public RecommendsAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, MakoClient makoClient)
+            private readonly RecommendationType recommendationType;
+
+            public RecommendsAsyncEnumerator(IPixivFetchEngine<Illustration> pixivEnumerable, RecommendationType recommendationType, MakoClient makoClient)
                 : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
             {
+                this.recommendationType = recommendationType;
             }
 
             protected override string NextUrl()
@@ -65,7 +70,8 @@ namespace Mako.Internal
 
             protected override string InitialUrl()
             {
-                return "/v1/illust/recommended?include_ranking_label=true";
+                var param = recommendationType.GetEnumMetadataContent() is string str ? $"&content_type={str}" : null;
+                return $"/v1/illust/recommended?include_ranking_label=true{param}";
             }
 
             protected override IEnumerator<Illustration> GetNewEnumerator()

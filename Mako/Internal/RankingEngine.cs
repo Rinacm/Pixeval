@@ -26,12 +26,12 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    public class RankingAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    public class RankingEngine : AbstractPixivFetchEngine<Illustration>
     {
         private readonly RankOption rankOption;
         private readonly DateTime date;
 
-        public RankingAsyncEnumerable(RankOption rankOption, DateTime date, MakoClient makoClient)
+        public RankingEngine(RankOption rankOption, DateTime date, MakoClient makoClient)
             : base(makoClient)
         {
             (this.rankOption, this.date) = (rankOption, date);
@@ -52,7 +52,7 @@ namespace Mako.Internal
             private readonly string rankOptionParameter;
             private readonly string dateParameter;
 
-            public RankingAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RankOption rankOption, DateTime date, MakoClient makoClient)
+            public RankingAsyncEnumerator(IPixivFetchEngine<Illustration> pixivEnumerable, RankOption rankOption, DateTime date, MakoClient makoClient)
                 : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
             {
                 rankOptionParameter = (string) rankOption.GetEnumMetadataContent();

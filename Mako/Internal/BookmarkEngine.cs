@@ -26,12 +26,12 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    internal class BookmarkAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    internal class BookmarkEngine : AbstractPixivFetchEngine<Illustration>
     {
         private readonly string uid;
         private readonly RestrictionPolicy restrictionPolicy;
 
-        public BookmarkAsyncEnumerable(MakoClient makoClient, string uid, RestrictionPolicy restrictionPolicy)
+        public BookmarkEngine(MakoClient makoClient, string uid, RestrictionPolicy restrictionPolicy)
             : base(makoClient)
         {
             (this.uid, this.restrictionPolicy) = (uid, restrictionPolicy);
@@ -52,7 +52,7 @@ namespace Mako.Internal
             private readonly RestrictionPolicy restrictionPolicy;
             private readonly string uid;
 
-            public BookmarkAsyncEnumerator(IPixivAsyncEnumerable<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
+            public BookmarkAsyncEnumerator(IPixivFetchEngine<Illustration> pixivEnumerable, RestrictionPolicy restrictionPolicy, string uid, MakoClient makoClient)
                 : base(pixivEnumerable, MakoAPIKind.AppApi, makoClient)
             {
                 (this.restrictionPolicy, this.uid) = (restrictionPolicy, uid);

@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Mako.Model;
 using NUnit.Framework;
@@ -26,15 +25,15 @@ using NUnit.Framework;
 namespace Mako.Test
 {
     [Order(4)]
-    public class BookmarkAsyncEnumerableTest
+    public class SearchEngineTest
     {
         private static MakoClient MakoClient => Global.MakoClient;
 
         [Test, Parallelizable]
-        public async Task PublicBookmarksTest()
+        public async Task KeywordSearchTest()
         {
             var list = new List<Illustration>();
-            await foreach (var illustration in MakoClient.Bookmarks(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Public))
+            await foreach (var illustration in MakoClient.Search("東方project", searchCount: 500))
             {
                 if (illustration == null)
                     continue;
@@ -45,24 +44,44 @@ namespace Mako.Test
 
             Console.WriteLine($"Size: {list.Count}");
             Assert.IsNotEmpty(list);
-            Assert.IsTrue(list.All(i => i.IsLiked));
         }
 
         [Test, Parallelizable]
-        public async Task PrivateBookmarksTest()
+        public async Task ResultListBookmarksOrderTest()
         {
             var list = new List<Illustration>();
-            await foreach (var illustration in MakoClient.Bookmarks(MakoClient.ContextualBoundedSession.Id, RestrictionPolicy.Private))
+            var enumerable = MakoClient.Search("東方project", searchCount: 500, illustrationSortOption: IllustrationSortOption.Popularity);
+            await foreach (var illustration in enumerable)
             {
                 if (illustration == null)
                     continue;
 
                 illustration.Print();
-                list.Add(illustration);
+                enumerable.InsertTo(list, illustration);
             }
 
             Console.WriteLine($"Size: {list.Count}");
-            Assert.IsTrue(list.All(i => i.IsLiked));
+            Assert.IsNotEmpty(list);
+            Assert.IsTrue(list.IsSorted(i => i.Bookmarks, true));
+        }
+
+        [Test, Parallelizable]
+        public async Task ResultListPublishDateOrderTest()
+        {
+            var list = new List<Illustration>();
+            var enumerable = MakoClient.Search("東方project", searchCount: 500, illustrationSortOption: IllustrationSortOption.PublishDate);
+            await foreach (var illustration in enumerable)
+            {
+                if (illustration == null)
+                    continue;
+
+                illustration.Print();
+                enumerable.InsertTo(list, illustration);
+            }
+
+            Console.WriteLine($"Size: {list.Count}");
+            Assert.IsNotEmpty(list);
+            Assert.IsTrue(list.IsSorted(i => i.PublishDate, true));
         }
     }
 }

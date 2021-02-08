@@ -24,8 +24,8 @@ using NUnit.Framework;
 
 namespace Mako.Test
 {
-    [Order(4)]
-    public class RankingAsyncEnumerableTest
+    [Order(5)]
+    public class RankingEngineTest
     {
         private static MakoClient MakoClient => Global.MakoClient;
 

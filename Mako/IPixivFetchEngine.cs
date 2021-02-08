@@ -22,7 +22,7 @@ using JetBrains.Annotations;
 namespace Mako
 {
     [PublicAPI]
-    public interface IPixivAsyncEnumerable<E> : IAsyncEnumerable<E>, ICancellable
+    public interface IPixivFetchEngine<E> : IAsyncEnumerable<E>, ICancellable
     {
         /// <summary>
         /// How many pages has been requested

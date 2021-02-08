@@ -16,46 +16,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
-using System;
-using JetBrains.Annotations;
+using Mako.Util;
 
-namespace Mako.Util
+namespace Mako.Net
 {
-    [PublicAPI]
-    public class Result<T>
+    public class PixivApiDelegatedHttpClientHandler : DelegatedHttpClientHandler
     {
-        public Result(T value)
-        {
-            Value = value;
-        }
-
-        public T Value { get; }
-
-        public static Result<T> Success(T value)
-        {
-            return new Success<T>(value);
-        }
-
-        public static Result<T> Failure => new Failure<T>(default);
-    }
-
-    [PublicAPI]
-    public class Success<T> : Result<T>
-    {
-        public Success(T value) : base(value)
-        {
-        }
-
-        public static implicit operator T(Success<T> success)
-        {
-            return success.Value;
-        }
-    }
-
-    [PublicAPI]
-    public class Failure<T> : Result<T>
-    {
-        public Failure(T value) : base(value)
+        public PixivApiDelegatedHttpClientHandler([InjectMarker] MakoClient makoClient) : base(makoClient.GetService<PixivApiLocalizedAutoRefreshingDelegateHttpMessageHandler>())
         {
         }
     }

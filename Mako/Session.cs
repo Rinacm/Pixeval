@@ -128,7 +128,7 @@ namespace Mako
         public static Session Parse(TokenResponse tokenResponse, string password, Session previousSession)
         {
             var response = tokenResponse.ToResponse;
-            return previousSession ?? new Session() with
+            return (previousSession ?? new Session()) with
             {
                 TokenRefreshed = DateTime.Now,
                 Name = response.User.Name,

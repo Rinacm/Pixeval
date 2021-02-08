@@ -57,7 +57,7 @@ namespace Mako.Internal
 
         protected C Entity { get; private set; }
 
-        protected RecursivelyIterablePixivAsyncEnumerator(IPixivAsyncEnumerable<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
+        protected RecursivelyIterablePixivAsyncEnumerator(IPixivFetchEngine<E> pixivEnumerable, MakoAPIKind apiKind, MakoClient makoClient)
             : base(pixivEnumerable, apiKind, makoClient)
         {
         }

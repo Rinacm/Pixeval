@@ -26,7 +26,7 @@ using Mako.Util;
 
 namespace Mako.Internal
 {
-    internal class KeywordSearchAsyncEnumerable : AbstractPixivAsyncEnumerable<Illustration>
+    internal class SearchEngine : AbstractPixivFetchEngine<Illustration>
     {
         private readonly DateTime? startDate;
         private readonly DateTime? endDate;
@@ -37,7 +37,7 @@ namespace Mako.Internal
         private readonly string keyword;
         private readonly uint start ;
 
-        public KeywordSearchAsyncEnumerable(
+        public SearchEngine(
             MakoClient makoClient,
             string keyword,
             uint start,
@@ -93,7 +93,7 @@ namespace Mako.Internal
             private int currentIllustIndex;
 
             public KeywordSearchAsyncEnumerator(
-                IPixivAsyncEnumerable<Illustration> pixivEnumerable,
+                IPixivFetchEngine<Illustration> pixivEnumerable,
                 uint current,
                 int searchCount,
                 string keyword,

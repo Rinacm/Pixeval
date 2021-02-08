@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,7 +66,7 @@ namespace Mako
         /// <summary>
         /// Per client IoC container
         /// </summary>
-        public IServiceCollection MakoServices { get; }
+        internal IServiceCollection MakoServices { get; }
 
         /// <summary>
         /// CultureInfo of current <see cref="MakoClient"/>
@@ -117,18 +118,14 @@ namespace Mako
             // register the RequestInterceptor and the HttpClientHandler
             MakoServices.AddSingleton<PixivApiLocalizedAutoRefreshingDelegateHttpMessageHandler>();
             MakoServices.AddSingleton<PixivImageDelegateHttpMessageHandler>();
-            MakoServices.AddSingleton<PixivApiInterceptedHttpClientHandler>();
-            MakoServices.AddSingleton<PixivImageInterceptedHttpClientHandler>();
+            MakoServices.AddSingleton<PixivApiDelegatedHttpClientHandler>();
+            MakoServices.AddSingleton<PixivImageDelegatedHttpClientHandler>();
 
             // register all the required HttpClients among entire application lifetime
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.AppApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.AppApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.WebApi, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.WebApiBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Auth, GetService<PixivApiInterceptedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.OAuthBaseUrl)));
-            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Image, GetService<PixivImageInterceptedHttpClientHandler>(), client =>
-            {
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "http://www.pixiv.net");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PixivIOSApp/5.8.7");
-            }));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.AppApi, GetService<PixivApiDelegatedHttpClientHandler>(), static client => client.BaseAddress = new Uri(MakoHttpOptions.AppApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.WebApi, GetService<PixivApiDelegatedHttpClientHandler>(), static client => client.BaseAddress = new Uri(MakoHttpOptions.WebApiBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Auth, GetService<PixivApiDelegatedHttpClientHandler>(), client => client.BaseAddress = new Uri(MakoHttpOptions.OAuthBaseUrl)));
+            MakoServices.AddSingleton(MakoHttpClientFactory.Create(MakoAPIKind.Image, GetService<PixivImageDelegatedHttpClientHandler>(), AddPixivImageHeaders));
 
             // register the HttpClientFactory as a selector to select which HttpClient shall be used
             MakoServices.AddSingleton<MakoHttpClientFactory>();
@@ -137,6 +134,12 @@ namespace Mako
             MakoServices.AddSingleton(RestService.For<IAppApiProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.AppApi)));
             MakoServices.AddSingleton(RestService.For<IWebApiProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.WebApi)));
             MakoServices.AddSingleton(RestService.For<IAuthProtocol>(GetMakoTaggedHttpClient(MakoAPIKind.Auth)));
+
+            static void AddPixivImageHeaders(HttpClient httpClient)
+            {
+                httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Referer", "http://www.pixiv.net");
+                httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PixivIOSApp/5.8.7");
+            }
         }
 
         public MakoClient(string account, string password, bool bypass = true, CultureInfo clientCulture = null) : this()
@@ -232,10 +235,10 @@ namespace Mako
         /// is exactly referring to yourself, otherwise the result will be the same regardless of its value
         /// </param>
         /// <returns></returns>
-        public IPixivAsyncEnumerable<Illustration> Bookmarks(string uid, RestrictionPolicy restrictionPolicy)
+        public IPixivFetchEngine<Illustration> Bookmarks(string uid, RestrictionPolicy restrictionPolicy)
         {
             EnsureUserLoggedIn();
-            return new BookmarkAsyncEnumerable(this, uid, restrictionPolicy).Also(RegisterOperation);
+            return new BookmarkEngine(this, uid, restrictionPolicy).Also(RegisterOperation);
         }
 
         /// <summary>
@@ -251,21 +254,21 @@ namespace Mako
         /// </param>
         /// <param name="searchMatchOption">Set the match method between keyword and illustration</param>
         /// <param name="illustrationSortOption">
-        /// Tell the <see cref="AbstractPixivAsyncEnumerable{E}.InsertTo"/> to manage the illustration in a proper order.
-        /// This option only affects when invoking <see cref="AbstractPixivAsyncEnumerable{E}.InsertTo"/>, it does not change
-        /// the order of <see cref="IPixivAsyncEnumerable{E}"/>
+        /// Tell the <see cref="AbstractPixivFetchEngine{E}.InsertTo"/> to manage the illustration in a proper order.
+        /// This option only affects when invoking <see cref="AbstractPixivFetchEngine{E}.InsertTo"/>, it does not change
+        /// the order of <see cref="IPixivFetchEngine{E}"/>
         /// </param>
         /// <param name="searchDuration"></param>
         /// <param name="startDate"></param>
         /// <param name="endDate"></param>
         /// <exception cref="ArgumentOutOfRangeException">If <see cref="start"/> is not in range [1, 5000)</exception>
-        /// <returns><see cref="IPixivAsyncEnumerable{E}"/></returns>
-        public IPixivAsyncEnumerable<Illustration> Search(
+        /// <returns><see cref="IPixivFetchEngine{E}"/></returns>
+        public IPixivFetchEngine<Illustration> Search(
             string keyword,
             uint start = 1,
             int searchCount = -1,
             SearchMatchOption searchMatchOption = SearchMatchOption.TitleAndCaption,
-            IllustrationSortOption illustrationSortOption = IllustrationSortOption.None,
+            IllustrationSortOption illustrationSortOption = IllustrationSortOption.Unspecified,
             SearchDuration? searchDuration = null,
             DateTime? startDate = null,
             DateTime? endDate = null)
@@ -274,7 +277,7 @@ namespace Mako
                 throw Errors.ArgumentOutOfRange($"desire range: [1, 5000), actual value: start({start})");
 
             EnsureUserLoggedIn();
-            return new KeywordSearchAsyncEnumerable(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption, searchDuration, startDate, endDate).Also(RegisterOperation);
+            return new SearchEngine(this, keyword, start, searchCount, searchMatchOption, illustrationSortOption, searchDuration, startDate, endDate).Also(RegisterOperation);
         }
 
         /// <summary>
@@ -284,15 +287,34 @@ namespace Mako
         /// <param name="date">
         /// The date you want to retrieve, which must not greater than two days before today
         /// </param>
-        /// <returns><see cref="IPixivAsyncEnumerable{E}"/></returns>
+        /// <returns><see cref="IPixivFetchEngine{E}"/></returns>
         /// <exception cref="ArgumentOutOfRangeException">if the date overflows</exception>
-        public IPixivAsyncEnumerable<Illustration> Ranking(RankOption rankOption, DateTime date)
+        public IPixivFetchEngine<Illustration> Ranking(RankOption rankOption, DateTime date)
         {
             if (DateTime.Today - date.Date > TimeSpan.FromDays(2))
                 throw Errors.ArgumentOutOfRange($"The parameter {nameof(date)}({date.ToString(CultureInfo.CurrentCulture)})'s value must not greater than two days before today");
 
             EnsureUserLoggedIn();
-            return new RankingAsyncEnumerable(rankOption, date, this).Also(RegisterOperation);
+            return new RankingEngine(rankOption, date, this).Also(RegisterOperation);
+        }
+
+        /// <summary>
+        /// Gets recommendations of today
+        /// </summary>
+        /// <param name="illustrationSortOption">
+        /// Tell the <see cref="AbstractPixivFetchEngine{E}.InsertTo"/> to manage the illustration in a proper order.
+        /// This option only affects when invoking <see cref="AbstractPixivFetchEngine{E}.InsertTo"/>, it does not change
+        /// the order of <see cref="IPixivFetchEngine{E}"/></param>
+        /// <param name="recommendationType">
+        /// Set the filter for recommendations, available values are <see cref="RecommendationType.Illustration"/>
+        /// , <see cref="RecommendationType.Manga"/> and <see cref="RecommendationType.Unspecified"/>. The default
+        /// value is <see cref="RecommendationType.Unspecified"/>
+        /// </param>
+        /// <returns></returns>
+        public IPixivFetchEngine<Illustration> Recommends(IllustrationSortOption illustrationSortOption, RecommendationType recommendationType = RecommendationType.Unspecified)
+        {
+            EnsureUserLoggedIn();
+            return new RecommendsEngine(this, illustrationSortOption, recommendationType).Also(RegisterOperation);
         }
 
         private void RegisterOperation(ICancellable cancellable)
