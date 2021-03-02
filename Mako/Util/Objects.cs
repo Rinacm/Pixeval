@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Buffers.Text;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
@@ -74,14 +75,9 @@ namespace Mako.Util
 
         public static string Hash<T>(this string str) where T : HashAlgorithm, new()
         {
-            static string Sum(string s1, string s2)
-            {
-                return s1 + s2;
-            }
-
             using var hasher = new T();
             var bytes = hasher.ComputeHash(str.GetBytes());
-            return bytes.Select(b => b.ToString("x2")).Aggregate(Sum);
+            return bytes.Select(b => b.ToString("x2")).Aggregate(static (s1, s2) => s1 + s2);
         }
 
         /// <summary>
@@ -139,6 +135,11 @@ namespace Mako.Util
         public static object GetEnumMetadataContent(this Enum value)
         {
             return value.GetType().GetField(value.ToString())!.GetCustomAttribute<EnumMetadata>(false)?.Data;
+        }
+
+        public static string ToURLSafeBase64String(this byte[] bytes)
+        {
+            return Convert.ToBase64String(bytes).TrimEnd(new [] { '=' }).Replace("+", "-").Replace("/", "_");
         }
     }
 }

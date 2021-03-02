@@ -93,7 +93,7 @@ namespace Mako
             }
         }
 
-        private readonly List<ICancellable> registeredOperations = new List<ICancellable>();
+        private readonly List<ICancellable> registeredOperations = new();
 
         static MakoClient()
         {

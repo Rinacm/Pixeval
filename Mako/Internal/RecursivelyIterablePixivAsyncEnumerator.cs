@@ -37,7 +37,7 @@ namespace Mako.Internal
     internal abstract class RecursivelyIterablePixivAsyncEnumerator<E, C> : AbstractPixivAsyncEnumerator<E, C>
     {
 
-        // the process procedure state transfer graph:
+        // the process procedure state transfer strategy graph:
         //                                                                  Emit translated models
         //                                                                      MoveNextAsync()
         //                                                                      +-----------+
